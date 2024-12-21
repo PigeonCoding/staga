@@ -120,7 +120,7 @@ void find_expr(string_view full, size_t *index, int layerz) {
     case 'a' ... 'z':
     case 'A' ... 'Z':
     case '_':
-      instr[current_instr].cmd = nstring;
+      instr[current_instr].cmd = func;
       instr[current_instr].strings.base_pointer =
           full.base_pointer + i * char_size;
 
@@ -131,6 +131,38 @@ void find_expr(string_view full, size_t *index, int layerz) {
                 (pseudo_str(full)[i] >= 'A' && pseudo_str(full)[i] <= 'Z') ||
                 pseudo_str(full)[i] == '_') &&
                (i < full.length));
+      // while (pseudo_str(full)[i] != ',' || pseudo_str(full)[i] == '(') {
+      //   i++;
+      // }
+      // i++;
+      // string_view arg = (string_view){
+      //     .base_pointer = instr[current_instr].strings.base_pointer =
+      //         full.base_pointer + i * char_size,
+      //     .length = 1};
+      // while (pseudo_str(full)[i] != ',' && i < full.length) {
+      //   arg.length++;
+      //   i++;
+      // }
+      // current_instr++;
+      // size_t in = 0;
+      // find_expr(arg, &in, instr[current_instr].layer + 1);
+
+      break;
+
+    case '"':
+      instr[current_instr].cmd = nstring;
+      instr[current_instr].strings.base_pointer =
+          full.base_pointer + (i + 1) * char_size;
+      i++;
+      while (pseudo_str(full)[i] != '"') {
+        if (pseudo_str(full)[i] == '\\') {
+          i++;
+          instr[current_instr].strings.length++;
+        }
+        i++;
+        instr[current_instr].strings.length++;
+      }
+
       break;
     }
 
@@ -140,7 +172,6 @@ void find_expr(string_view full, size_t *index, int layerz) {
 
     i++;
   } while (k == 0 && i < full.length);
-  // current_instr--;
 
   *index = i;
 }
@@ -160,16 +191,36 @@ int main() {
   size_t z = 0;
   find_expr(string_to_view(full), &z, 0);
 
-  // for (size_t k = 0; k < array_length(instr) && k < current_instr; k += 1) {
-  //   // printf("%d\n",
-  //   //        instr[k].values_int[0] != 0 ? instr[k].values_int[0] :
-  //   //        instr[k].cmd);
-  //   if (instr[k].cmd == nstring) {
-  //     printf("%zu : %d :: ", k, instr[k].layer);
-  //     printf(str_fmt " ", print_str(instr[k].strings));
-  //   }
-  // }
-  // putchar('\n');
+  for (size_t k = 0; k < array_length(instr) && k < current_instr; k += 1) {
+    printf("%d", instr[k].layer);
+    for (int z = 0; z <= instr[k].layer; z++) {
+      printf("  ");
+    }
+    switch (instr[k].cmd) {
+    case number:
+      printf("int: %d", instr[k].values_int[0]);
+      break;
+    case nstring:
+      printf("\"" str_fmt "\"", print_str(instr[k].strings));
+      break;
+    case func:
+      printf("func: "str_fmt, print_str(instr[k].strings));
+      break;
+    case add:
+      printf("+");
+      break;
+    case minus:
+      printf("-");
+      break;
+    case ndiv:
+      printf("/");
+      break;
+    case mult:
+      printf("*");
+      break;
+    }
+    putchar('\n');
+  }
 
   free_string(&full);
   return 0;
