@@ -16,6 +16,8 @@
 #define char_size sizeof(char)
 #define pseudo_str(s) ((char *)(s).base_pointer)
 #define print_str(s) (int)((s).length), pseudo_str(s)
+#define string_to_view(s)                                                      \
+  (string_view) { .base_pointer = s.base_pointer, .length = s.length }
 
 #ifndef V_ALLOC
 #include <stdlib.h>
