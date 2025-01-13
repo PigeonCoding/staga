@@ -1,0 +1,65 @@
+package lisp_esk
+
+import "core:strings"
+
+Tokenizer :: struct {
+  res:        string,
+  last_token: string,
+  len:        int,
+  cursor:     int,
+}
+
+get_next_token :: proc(tok: ^Tokenizer) -> string {
+  for is_whitespace(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {
+    tok.cursor += 1
+  }
+
+  token: string
+
+  if is_numerical(tok.res[tok.cursor]) {
+    start := tok.cursor
+
+    for is_numerical(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
+
+    token = tok.res[start:tok.cursor]
+    return token
+  } else if is_alphabetical(tok.res[tok.cursor]) {
+    start := tok.cursor
+
+    for is_alphanumerical(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
+
+    token = tok.res[start:tok.cursor]
+    return token
+  } else if tok.res[tok.cursor] == '"' {
+    start := tok.cursor
+    tok.cursor += 1
+
+    for tok.res[tok.cursor] != '"' && tok.cursor < tok.len - 1 {
+      if tok.res[tok.cursor] == '\\' {
+        tok.cursor += 1
+      }
+      tok.cursor += 1
+    }
+    tok.cursor += 1
+
+    token = tok.res[start:tok.cursor]
+    return token
+
+  } else if tok.res[tok.cursor] == '-' && tok.res[tok.cursor + 1] == '>' {
+    tok.cursor += 2
+    return "->"
+  } else if is_operand(tok.res[tok.cursor]) {
+    start := tok.cursor
+
+    for is_operand(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
+
+    token = tok.res[start:tok.cursor]
+    return token
+  } else {
+    token, _ = strings.clone_from_bytes([]u8{tok.res[tok.cursor]})
+    tok.cursor += 1
+  }
+
+  return token
+}
+
