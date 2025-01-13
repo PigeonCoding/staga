@@ -1,3 +1,1 @@
-(printf ("%d\n") (9 + (25/5)))
-(printf ("%s\n") ("8.5"))
-(printf ("%d\n") (8+(5+2)))
+("nice" println)
