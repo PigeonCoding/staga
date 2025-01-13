@@ -6,7 +6,7 @@
 #define compiler "gcc"
 #define builder_name "c_builder"
 #define builder_build_flags " -O2 "
-#define main_build_flags " -g -Wall -Wextra -Wswitch-enum -lm "
+#define main_build_flags " -g -Wall -Wextra -Wswitch-enum "
 
 #define dir_lib "lib"
 #define dir_build "build"
@@ -44,7 +44,7 @@ int check_build(int z) {
   if (b) {
     push_str_whitespace(cmd, compiler " %s", files_check[0]);
     push_str_whitespace(cmd, main_build_flags);
-    push_str_whitespace(cmd, "-L" dir_lib " -Wl,--enable-new-dtags -lsqlite3");
+    // push_str_whitespace(cmd, "-L" dir_lib " -Wl,--enable-new-dtags -lsqlite3");
     push_str_whitespace(cmd, "-g -Wall -Wextra -Wswitch-enum");
     push_str_whitespace(cmd, "-o " dir_build "/main");
 

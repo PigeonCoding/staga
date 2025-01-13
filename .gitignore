@@ -1,4 +1,4 @@
-
 /build
-qbe-test.ssa
-std.ssa
+*.ssa
+c_builder
+main
