@@ -5,18 +5,16 @@ import "core:os"
 import "core:strconv"
 import "core:strings"
 
-
 builtin_funcs := []builtin_fn {
-  builtin_fn{name = "println", n_consume = 1, fn = println},
-  builtin_fn{name = "print", n_consume = 1, fn = print},
+  builtin_fn{name = []string{"println", "."}, n_consume = 1, fn = println},
+  builtin_fn{name = []string{"print"}, n_consume = 1, fn = print},
 }
 
 builtin_fn :: struct {
-  name:      string,
+  name:      []string,
   n_consume: int,
   fn:        proc(i: int) -> bool,
 }
-
 
 stack_struct :: struct {
   data: string,
@@ -24,7 +22,6 @@ stack_struct :: struct {
 }
 
 stack := [dynamic]stack_struct{}
-
 
 print :: proc(i: int) -> bool {
   to_print: string
@@ -39,17 +36,13 @@ print :: proc(i: int) -> bool {
     better_assert(true, false, "op not implemented ", itos(auto_cast instr_list[z].data_type))
   }
   print_str(to_print)
-  // fmt.println("")
   pop(&stack)
   return len(stack) == 0
 }
 
-
 println :: proc(i: int) -> bool {
-
   print(i)
   fmt.println("")
-  // pop(&stack)
   return len(stack) == 0
 }
 
@@ -108,11 +101,13 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       data     = "",
     }
 
-    if token_list[index^] == ")" && layer > 0 {
-      if index^ < len(token_list) - 1 do index^ += 1
-      break
-    }
-    if token_list[index^] == "(" {
+    switch token_list[index^] {
+    case ")":
+      if layer > 0 {
+        if index^ < len(token_list) - 1 do index^ += 1
+        break
+      }
+    case "(":
       index^ += 1
       parse_instrs(index, layer + 1)
     }
@@ -120,59 +115,58 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
     if index^ >= len(token_list) - 1 do break
 
 
-    if is_numerical(token_list[index^][0]) {
+    switch token_list[index^][0] {
+    case '0' ..= '9':
       st = {
         instr_id  = n_instr.push,
         data      = token_list[index^],
         data_type = n_type.nint,
       }
-    } else if token_list[index^][0] == '"' {
+    case '"':
       st = {
         instr_id  = n_instr.push,
         data      = token_list[index^],
         data_type = n_type.nstring,
       }
-    } else if token_list[index^] == "+" {
+    case '+':
       st = {
         instr_id  = n_instr.add,
         data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
       index^ += 1
-    } else if token_list[index^] == "-" {
+    case '-':
       st = {
         instr_id  = n_instr.minus,
         data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
       index^ += 1
-
-    } else if token_list[index^] == "*" {
-
+    case '*':
       st = {
         instr_id  = n_instr.mult,
         data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
       index^ += 1
-    } else if token_list[index^] == "/" {
-
+    case '/':
       st = {
         instr_id  = n_instr.div,
         data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
       index^ += 1
-    }
-
-
-    if st.instr_id == n_instr.none {
-      for fn in builtin_funcs {
-        if token_list[index^] == fn.name {
-          st = {
-            instr_id  = n_instr.consume,
-            data      = token_list[index^],
-            data_type = n_type.fn,
+    case:
+      if st.instr_id == n_instr.none {
+        for fn in builtin_funcs {
+          for name in fn.name {
+            if token_list[index^] == name {
+              st = {
+                instr_id  = n_instr.consume,
+                data      = token_list[index^],
+                data_type = n_type.fn,
+              }
+            }
           }
         }
       }
@@ -200,13 +194,15 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
 
 print_str :: proc(str: string) {
   i := 0
-  // fmt.print("{}", str[0])
   for i < len(str) {
     if str[i] == '\\' && str[i + 1] == 'n' {
       fmt.println("")
       i += 1
     } else if str[i] == '\\' && str[i + 1] == 't' {
       fmt.print("\t")
+      i += 1
+    } else if str[i] == '\\' && str[i + 1] == 'r' {
+      fmt.print("\r")
       i += 1
     } else {
       fmt.printf("%c", str[i])
@@ -218,21 +214,15 @@ print_str :: proc(str: string) {
 
 exec_relevant_fn :: proc(name: string, i: int) {
   for fn in builtin_funcs {
-    if name == fn.name {
-      fn.fn(i)
+    for f in fn.name {
+      if name == f {
+        fn.fn(i)
+      }
     }
   }
 }
 
-main :: proc() {
-
-  get_tokens("test.lsek")
-  index := 0
-  parse_instrs(&index)
-
-  // fmt.println(instr_list)
-
-
+interpret_instrs :: proc() {
   for ins, i in instr_list {
     #partial switch ins.instr_id {
     case n_instr.push:
@@ -246,7 +236,16 @@ main :: proc() {
     case:
       better_assert(true, false, "instr not implemented ", itos(auto_cast ins.instr_id))
     }
-    // fmt.println(stack)
   }
+}
+
+main :: proc() {
+
+  get_tokens("test.stg")
+  index := 0
+  parse_instrs(&index)
+
+  interpret_instrs()
+
 }
 
