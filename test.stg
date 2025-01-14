@@ -1,1 +1,2 @@
-20 69 < . "Hello, World" .
+20 69 < . "Hello, World" . // this is a comment
+420 .
