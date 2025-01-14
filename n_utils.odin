@@ -1,4 +1,4 @@
-package lisp_esk
+package staga
 
 import "core:fmt"
 import "core:os"
@@ -18,7 +18,7 @@ better_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {
       fmt.printf("{}", m)
     }
     fmt.printfln("")
-    if with_assert do assert(false, "")
+    if with_assert do os.exit(1)
   }
 }
 

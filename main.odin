@@ -1,20 +1,9 @@
-package lisp_esk
+package staga
 
 import "core:fmt"
 import "core:os"
+import "core:slice"
 import "core:strconv"
-import "core:strings"
-
-builtin_funcs := []builtin_fn {
-  builtin_fn{name = []string{"println", "."}, n_consume = 1, fn = println},
-  builtin_fn{name = []string{"print"}, n_consume = 1, fn = print},
-}
-
-builtin_fn :: struct {
-  name:      []string,
-  n_consume: int,
-  fn:        proc(i: int) -> bool,
-}
 
 stack_struct :: struct {
   data: string,
@@ -23,32 +12,21 @@ stack_struct :: struct {
 
 stack := [dynamic]stack_struct{}
 
-print :: proc(i: int) -> bool {
-  to_print: string
-  t := stack[len(stack) - 1].data
-  z := i - 1
-  #partial switch stack[len(stack) - 1].type {
-  case n_type.nstring:
-    to_print = t[1:(len(stack[len(stack) - 1].data) - 1)]
-  case n_type.nint:
-    to_print = t
-  case:
-    better_assert(true, false, "op not implemented ", itos(auto_cast instr_list[z].data_type))
-  }
-  print_str(to_print)
-  pop(&stack)
-  return len(stack) == 0
-}
-
-println :: proc(i: int) -> bool {
-  print(i)
-  fmt.println("")
-  return len(stack) == 0
-}
-
 token_list := [dynamic]string{}
 instr_list := [dynamic]instr{}
 
+n_instr_names := []string {
+  "none",
+  "consume",
+  "push",
+  "pop",
+  "add",
+  "minus",
+  "mult",
+  "div",
+  "tmp",
+  "eq",
+}
 n_instr :: enum {
   none,
   consume,
@@ -59,8 +37,10 @@ n_instr :: enum {
   mult,
   div,
   tmp,
+  eq,
 }
 
+n_type_names := []string{"none", "string", "int", "ops", "fn"}
 n_type :: enum {
   none,
   nstring,
@@ -73,22 +53,6 @@ instr :: struct {
   instr_id:  n_instr,
   data:      string,
   data_type: n_type,
-}
-
-get_tokens :: proc(file: string) {
-  tok: Tokenizer
-  f_err: os.Error
-  tok.res, f_err = read_file(file)
-  if f_err != nil {
-    fmt.eprintfln("could not read because {}", f_err)
-    os.exit(1)
-  }
-  tok.len = len(tok.res)
-  append(&token_list, "(")
-
-  for tok.cursor < tok.len - 1 {append(&token_list, get_next_token(&tok))}
-
-  append(&token_list, ")")
 }
 
 parse_instrs :: proc(index: ^int, layer: int = 0) {
@@ -156,6 +120,12 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
         data_type = n_type.ops,
       }
       index^ += 1
+    case '=':
+      st = {
+        instr_id  = n_instr.eq,
+        data      = "",
+        data_type = n_type.ops,
+      }
     case:
       if st.instr_id == n_instr.none {
         for fn in builtin_funcs {
@@ -192,34 +162,26 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
 
 }
 
-print_str :: proc(str: string) {
-  i := 0
-  for i < len(str) {
-    if str[i] == '\\' && str[i + 1] == 'n' {
-      fmt.println("")
-      i += 1
-    } else if str[i] == '\\' && str[i + 1] == 't' {
-      fmt.print("\t")
-      i += 1
-    } else if str[i] == '\\' && str[i + 1] == 'r' {
-      fmt.print("\r")
-      i += 1
-    } else {
-      fmt.printf("%c", str[i])
-    }
-
-    i += 1
-  }
-}
-
-exec_relevant_fn :: proc(name: string, i: int) {
+exec_relevant_fn :: proc(st: instr, i: int) {
+  better_assert(true, len(stack) > 0, "the stack is empty")
   for fn in builtin_funcs {
     for f in fn.name {
-      if name == f {
+      if st.data == f && slice.contains(fn.args_type, stack[len(stack) - 1].type) {
         fn.fn(i)
+        return
       }
     }
   }
+
+  fmt.println(stack)
+  better_assert(
+    true,
+    false,
+    "no fn ",
+    st.data,
+    " for arg_type ",
+    n_type_names[stack[len(stack) - 1].type],
+  )
 }
 
 interpret_instrs :: proc() {
@@ -228,24 +190,50 @@ interpret_instrs :: proc() {
     case n_instr.push:
       append(&stack, stack_struct{data = ins.data, type = ins.data_type})
     case n_instr.consume:
-      exec_relevant_fn(ins.data, i)
+      exec_relevant_fn(ins, i)
     case n_instr.add:
       val := strconv.atoi(stack[len(stack) - 1].data)
       val += strconv.atoi(instr_list[i].data)
       stack[len(stack) - 1].data = itos(val)
+    case n_instr.eq:
+      val1 := pop(&stack)
+      val2 := pop(&stack)
+      append(&stack, stack_struct{data = itos(val1 == val2), type = n_type.nint})
     case:
-      better_assert(true, false, "instr not implemented ", itos(auto_cast ins.instr_id))
+      better_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
   }
 }
 
 main :: proc() {
+  if len(os.args) < 2 {
+    fmt.eprintln("ERROR: no command provided")
+    fmt.println("usage:")
+    fmt.println(" *", os.args[0], "run <file> ----- runs the file")
+    fmt.println(" * help ----- prints this message")
+    os.exit(1)
+  }
+  if os.args[1] == "help" {
+    fmt.println("usage:")
+    fmt.println(" *", os.args[0], "run <file> ----- runs the file")
+    fmt.println(" * help ----- prints this message")
+    os.exit(0)
+  }
+  if os.args[1] == "run" {
+    if len(os.args) < 3 {
+      fmt.eprintln("ERROR: no file provided")
+      fmt.println("usage:")
+      fmt.println(" *", os.args[0], "run <file> ----- runs the file")
+      fmt.println(" * help ----- prints this message")
+      os.exit(1)
+    }
+    get_tokens(os.args[2], &token_list)
+    index := 0
+    parse_instrs(&index)
 
-  get_tokens("test.stg")
-  index := 0
-  parse_instrs(&index)
+    interpret_instrs()
+  }
 
-  interpret_instrs()
 
 }
 

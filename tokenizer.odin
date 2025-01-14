@@ -1,5 +1,7 @@
-package lisp_esk
+package staga
 
+import "core:fmt"
+import "core:os"
 import "core:strings"
 
 Tokenizer :: struct {
@@ -64,5 +66,21 @@ get_next_token :: proc(tok: ^Tokenizer) -> string {
   }
 
   return token
+}
+
+get_tokens :: proc(file: string, token_list: ^[dynamic]string) {
+  tok: Tokenizer
+  f_err: os.Error
+  tok.res, f_err = read_file(file)
+  if f_err != nil {
+    fmt.eprintfln("could not read because {}", f_err)
+    os.exit(1)
+  }
+  tok.len = len(tok.res)
+  append(token_list, "(")
+
+  for tok.cursor < tok.len - 1 {append(token_list, get_next_token(&tok))}
+
+  append(token_list, ")")
 }
 
