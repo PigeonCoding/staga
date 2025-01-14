@@ -2,9 +2,56 @@ package lisp_esk
 
 import "core:fmt"
 import "core:os"
+import "core:strconv"
 import "core:strings"
 
-func_names := []string{"print", "println"}
+
+builtin_funcs := []builtin_fn {
+  builtin_fn{name = "println", n_consume = 1, fn = println},
+  builtin_fn{name = "print", n_consume = 1, fn = print},
+}
+
+builtin_fn :: struct {
+  name:      string,
+  n_consume: int,
+  fn:        proc(i: int) -> bool,
+}
+
+
+stack_struct :: struct {
+  data: string,
+  type: n_type,
+}
+
+stack := [dynamic]stack_struct{}
+
+
+print :: proc(i: int) -> bool {
+  to_print: string
+  t := stack[len(stack) - 1].data
+  z := i - 1
+  #partial switch stack[len(stack) - 1].type {
+  case n_type.nstring:
+    to_print = t[1:(len(stack[len(stack) - 1].data) - 1)]
+  case n_type.nint:
+    to_print = t
+  case:
+    better_assert(true, false, "op not implemented ", itos(auto_cast instr_list[z].data_type))
+  }
+  print_str(to_print)
+  // fmt.println("")
+  pop(&stack)
+  return len(stack) == 0
+}
+
+
+println :: proc(i: int) -> bool {
+
+  print(i)
+  fmt.println("")
+  // pop(&stack)
+  return len(stack) == 0
+}
 
 token_list := [dynamic]string{}
 instr_list := [dynamic]instr{}
@@ -18,6 +65,7 @@ n_instr :: enum {
   minus,
   mult,
   div,
+  tmp,
 }
 
 n_type :: enum {
@@ -43,90 +91,109 @@ get_tokens :: proc(file: string) {
     os.exit(1)
   }
   tok.len = len(tok.res)
+  append(&token_list, "(")
 
   for tok.cursor < tok.len - 1 {append(&token_list, get_next_token(&tok))}
 
+  append(&token_list, ")")
 }
 
-parse_instrs :: proc() {
+parse_instrs :: proc(index: ^int, layer: int = 0) {
+  tmp_instrs := [dynamic]instr{}
+  defer (delete(tmp_instrs))
 
-  index := 0
-  for index < len(token_list) {
-    // if index >= tok.len - 1 do break
-    //fmt.printfln("{}", index)
+  for index^ < len(token_list) {
     st: instr = {
       instr_id = n_instr.none,
       data     = "",
     }
 
-    if token_list[index] == "(" || token_list[index] == ")" {
-      index += 1
-      continue
+    if token_list[index^] == ")" && layer > 0 {
+      if index^ < len(token_list) - 1 do index^ += 1
+      break
+    }
+    if token_list[index^] == "(" {
+      index^ += 1
+      parse_instrs(index, layer + 1)
     }
 
+    if index^ >= len(token_list) - 1 do break
 
-    if is_numerical(token_list[index][0]) {
+
+    if is_numerical(token_list[index^][0]) {
       st = {
         instr_id  = n_instr.push,
-        data      = token_list[index],
+        data      = token_list[index^],
         data_type = n_type.nint,
       }
-    } else if token_list[index][0] == '"' {
+    } else if token_list[index^][0] == '"' {
       st = {
         instr_id  = n_instr.push,
-        data      = token_list[index],
+        data      = token_list[index^],
         data_type = n_type.nstring,
       }
-    } else if token_list[index] == "+" {
+    } else if token_list[index^] == "+" {
       st = {
         instr_id  = n_instr.add,
-        data      = token_list[index + 1],
+        data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
-      index += 1
-    } else if token_list[index] == "-" {
+      index^ += 1
+    } else if token_list[index^] == "-" {
       st = {
         instr_id  = n_instr.minus,
-        data      = token_list[index + 1],
+        data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
-      index += 1
+      index^ += 1
 
-    } else if token_list[index] == "*" {
+    } else if token_list[index^] == "*" {
 
       st = {
         instr_id  = n_instr.mult,
-        data      = token_list[index + 1],
+        data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
-      index += 1
-    } else if token_list[index] == "/" {
+      index^ += 1
+    } else if token_list[index^] == "/" {
 
       st = {
         instr_id  = n_instr.div,
-        data      = token_list[index + 1],
+        data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
-      index += 1
+      index^ += 1
     }
 
+
     if st.instr_id == n_instr.none {
-      for fn in func_names {
-        if token_list[index] == fn {
+      for fn in builtin_funcs {
+        if token_list[index^] == fn.name {
           st = {
             instr_id  = n_instr.consume,
-            data      = token_list[index],
+            data      = token_list[index^],
             data_type = n_type.fn,
           }
         }
       }
     }
 
-    better_assert(true, st.instr_id != n_instr.none, "something fishy with ", token_list[index])
+    better_assert(
+      false,
+      st.instr_id != n_instr.none,
+      "something fishy with ",
+      token_list[index^],
+      ":",
+      itos(index^),
+    )
 
-    append(&instr_list, st)
+    append(&tmp_instrs, st)
 
-    index += 1
+    index^ += 1
+  }
+
+  for n in tmp_instrs {
+    append(&instr_list, n)
   }
 
 }
@@ -149,58 +216,37 @@ print_str :: proc(str: string) {
   }
 }
 
+exec_relevant_fn :: proc(name: string, i: int) {
+  for fn in builtin_funcs {
+    if name == fn.name {
+      fn.fn(i)
+    }
+  }
+}
+
 main :: proc() {
 
   get_tokens("test.lsek")
-  parse_instrs()
+  index := 0
+  parse_instrs(&index)
 
-  fmt.println(instr_list)
+  // fmt.println(instr_list)
 
-  stack := [dynamic]string{}
 
   for ins, i in instr_list {
     #partial switch ins.instr_id {
     case n_instr.push:
-      append(&stack, ins.data)
+      append(&stack, stack_struct{data = ins.data, type = ins.data_type})
     case n_instr.consume:
-      switch ins.data {
-      case "print":
-        to_print: string
-        t := stack[i - 1]
-        #partial switch instr_list[i - 1].data_type {
-        case n_type.nstring:
-          to_print = t[1:(len(stack[i - 1]) - 1)]
-        case n_type.nint:
-          for n in instr_list[i - 1].data {
-            to_print = t
-          }
-
-        }
-        print_str(to_print)
-        pop(&stack)
-        if len(stack) == 0 do break
-      case "println":
-        to_print: string
-        t := stack[i - 1]
-        #partial switch instr_list[i - 1].data_type {
-        case n_type.nstring:
-          to_print = t[1:(len(stack[i - 1]) - 1)]
-        case n_type.nint:
-          for n in instr_list[i - 1].data {
-            to_print = t
-          }
-
-        }
-        print_str(to_print)
-        fmt.println("")
-        pop(&stack)
-        if len(stack) == 0 do break
-      case:
-        better_assert(true, false, "fn not implemented", ins.data)
-      }
+      exec_relevant_fn(ins.data, i)
+    case n_instr.add:
+      val := strconv.atoi(stack[len(stack) - 1].data)
+      val += strconv.atoi(instr_list[i].data)
+      stack[len(stack) - 1].data = itos(val)
     case:
       better_assert(true, false, "instr not implemented ", itos(auto_cast ins.instr_id))
     }
+    // fmt.println(stack)
   }
 }
 

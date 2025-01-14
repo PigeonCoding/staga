@@ -1,1 +1,4 @@
-("nice" println)
+400 + 20 println
+"World" println
+100 + 5
+"h" println println

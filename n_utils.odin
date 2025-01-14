@@ -4,10 +4,12 @@ import "core:fmt"
 import "core:os"
 import "core:strconv"
 
-conv_buf: [8]byte
+conv_buf_cont := [dynamic]([8]byte){}
 
 itos :: proc(i: int) -> string {
-  return strconv.itoa(conv_buf[:], i)
+  conv_buf: [8]byte
+  append(&conv_buf_cont, conv_buf)
+  return strconv.itoa(conv_buf_cont[len(conv_buf_cont) - 1][:], i)
 }
 
 better_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {
