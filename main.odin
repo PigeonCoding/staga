@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:os"
 import "core:slice"
 import "core:strconv"
+import "core:strings"
 
 stack_struct :: struct {
   data: string,
@@ -26,7 +27,10 @@ n_instr_names := []string {
   "div",
   "tmp",
   "eq",
+  "gr",
+  "less",
 }
+
 n_instr :: enum {
   none,
   consume,
@@ -38,6 +42,8 @@ n_instr :: enum {
   div,
   tmp,
   eq,
+  gr,
+  less,
 }
 
 n_type_names := []string{"none", "string", "int", "ops", "fn"}
@@ -126,6 +132,18 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
         data      = "",
         data_type = n_type.ops,
       }
+    case '>':
+      st = {
+        instr_id  = n_instr.gr,
+        data      = "",
+        data_type = n_type.ops,
+      }
+    case '<':
+      st = {
+        instr_id  = n_instr.less,
+        data      = "",
+        data_type = n_type.ops,
+      }
     case:
       if st.instr_id == n_instr.none {
         for fn in builtin_funcs {
@@ -143,11 +161,11 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
     }
 
     better_assert(
-      false,
+      true,
       st.instr_id != n_instr.none,
       "something fishy with ",
       token_list[index^],
-      ":",
+      " : ",
       itos(index^),
     )
 
@@ -199,6 +217,26 @@ interpret_instrs :: proc() {
       val1 := pop(&stack)
       val2 := pop(&stack)
       append(&stack, stack_struct{data = itos(val1 == val2), type = n_type.nint})
+    case n_instr.gr:
+      val2 := pop(&stack)
+      val1 := pop(&stack)
+      append(
+        &stack,
+        stack_struct {
+          data = itos(strconv.atoi(val1.data) > strconv.atoi(val2.data)),
+          type = n_type.nint,
+        },
+      )
+    case n_instr.less:
+      val2 := pop(&stack)
+      val1 := pop(&stack)
+      append(
+        &stack,
+        stack_struct {
+          data = itos(strconv.atoi(val1.data) < strconv.atoi(val2.data)),
+          type = n_type.nint,
+        },
+      )
     case:
       better_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
