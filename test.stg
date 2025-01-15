@@ -1,8 +1,14 @@
-// string printing
-"Hello, World" . // this is a comment
-// int printing (only unsigned)
-420 . # this is also a comment
-// condition
-5 < 10 .
-5 > 10 .
-5 = 5 .
+"printing:" .
+"Hello, World" . // string printing
+69 . # int printing (only unsigned)
+
+"arithmetics:" "" . .
+5 + 5 "5 + 5: " print .
+6 - 1 "6 - 1: " print .
+2 * 10 "2 * 10: " print .
+10 / 5 "10 / 5: " print .
+
+"condition:" "" . .
+5 < 10 "5 < 10: " print .
+5 > 10 "5 > 10: " print .
+5 = 5 "5 = 5: " print .

@@ -29,12 +29,24 @@ interpret_instrs :: proc() {
       exec_relevant_fn(ins, i)
     case n_instr.add:
       val := strconv.atoi(pop(&stack).data)
-      val += strconv.atoi(instr_list[i].data)
-      stack[len(stack) - 1].data = itos(val)
+      val2 := strconv.atoi(instr_list[i].data)
+      append(&stack, stack_struct{data = itos(val + val2), type = n_type.nint})
+    case n_instr.minus:
+      val := strconv.atoi(pop(&stack).data)
+      val2 := strconv.atoi(instr_list[i].data)
+      append(&stack, stack_struct{data = itos(val - val2), type = n_type.nint})
+    case n_instr.mult:
+      val := strconv.atoi(pop(&stack).data)
+      val2 := strconv.atoi(instr_list[i].data)
+      append(&stack, stack_struct{data = itos(val * val2), type = n_type.nint})
+    case n_instr.div:
+      val := strconv.atoi(pop(&stack).data)
+      val2 := strconv.atoi(instr_list[i].data)
+      append(&stack, stack_struct{data = itos(val / val2), type = n_type.nint})
     case n_instr.eq:
       val := strconv.atoi(pop(&stack).data)
       val2 := strconv.atoi(instr_list[i].data)
-      append(&stack, stack_struct{data = itos(auto_cast val == val2), type = n_type.nint})
+      append(&stack, stack_struct{data = itos(val == val2), type = n_type.nint})
     case n_instr.gr:
       val := strconv.atoi(pop(&stack).data)
       val2 := strconv.atoi(instr_list[i].data)

@@ -11,7 +11,7 @@ stack_struct :: struct {
 token_list := [dynamic]string{}
 instr_list := [dynamic]instr{}
 
-print_help :: proc(msg: string) {
+print_help :: proc(msg: string = "") {
 
   fmt.eprintln("ERROR: no command provided")
   fmt.println("usage:")
@@ -25,17 +25,12 @@ main :: proc() {
     os.exit(1)
   }
   if os.args[1] == "help" {
-    fmt.println("usage:")
-    fmt.println(" *", os.args[0], "run <file> ----- runs the file")
-    fmt.println(" * help ----- prints this message")
+    print_help()
     os.exit(0)
   }
   if os.args[1] == "run" {
     if len(os.args) < 3 {
-      fmt.eprintln("ERROR: no file provided")
-      fmt.println("usage:")
-      fmt.println(" *", os.args[0], "run <file> ----- runs the file")
-      fmt.println(" * help ----- prints this message")
+      print_help("ERROR: no file provided")
       os.exit(1)
     }
     get_tokens(os.args[2], &token_list)
