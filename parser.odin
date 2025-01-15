@@ -14,51 +14,6 @@ fn_skeleton :: struct {
   arg_type: []n_type,
 }
 
-n_type_names := []string{"none", "string", "int", "ops", "fn"}
-n_type :: enum {
-  none,
-  nstring,
-  nint,
-  ops,
-  fn,
-}
-
-n_instr_names := []string {
-  "none",
-  "consume",
-  "push",
-  "pop",
-  "add",
-  "minus",
-  "mult",
-  "div",
-  "tmp",
-  "eq",
-  "gr",
-  "less",
-}
-
-n_instr :: enum {
-  none,
-  consume,
-  push,
-  pop,
-  add,
-  minus,
-  mult,
-  div,
-  tmp,
-  eq,
-  gr,
-  less,
-}
-
-instr :: struct {
-  instr_id:  n_instr,
-  data:      string,
-  data_type: n_type,
-}
-
 parse_instrs :: proc(index: ^int, layer: int = 0) {
   tmp_instrs := [dynamic]instr{}
   defer (delete(tmp_instrs))
@@ -162,7 +117,7 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       }
     }
 
-    better_assert(
+    a_assert(
       true,
       st.instr_id != n_instr.none,
       "something fishy with ",

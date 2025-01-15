@@ -13,7 +13,6 @@ builtin_funcs := []builtin_fn {
   builtin_fn{name = []string{"print"}, fn = nprint_int, args_type = []n_type{.nint}},
 }
 
-
 builtin_fn :: struct {
   name:      []string,
   fn:        proc(i: int) -> bool,
@@ -56,12 +55,12 @@ interpret_instrs :: proc() {
       val2 := strconv.atoi(instr_list[i].data)
       append(&stack, stack_struct{data = itos(val < val2), type = n_type.nint})
     case:
-      better_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
+      a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
   }
 }
 exec_relevant_fn :: proc(st: instr, i: int) {
-  better_assert(true, len(stack) > 0, "the stack is empty")
+  a_assert(true, len(stack) > 0, "the stack is empty")
   for fn in builtin_funcs {
     for f in fn.name {
       if st.data == f && slice.contains(fn.args_type, stack[len(stack) - 1].type) {
@@ -72,7 +71,7 @@ exec_relevant_fn :: proc(st: instr, i: int) {
   }
 
   fmt.println(stack)
-  better_assert(
+  a_assert(
     true,
     false,
     "no fn ",

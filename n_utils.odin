@@ -5,13 +5,14 @@ import "core:os"
 import "core:strconv"
 import "core:strings"
 
+// int to string
 itos :: proc(i: int) -> string {
   conv_buf := make([]byte, 8)
   defer delete_slice(conv_buf)
   return strings.clone(strconv.itoa(conv_buf, i))
 }
 
-better_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {
+a_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {
   if !cond {
     for m in rest {
       fmt.printf("{}", m)
