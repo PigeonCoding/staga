@@ -1,2 +1,8 @@
-20 69 < . "Hello, World" . // this is a comment
-420 .
+// string printing
+"Hello, World" . // this is a comment
+// int printing (only unsigned)
+420 . # this is also a comment
+// condition
+5 < 10 .
+5 > 10 .
+5 = 5 .

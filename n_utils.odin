@@ -3,13 +3,12 @@ package staga
 import "core:fmt"
 import "core:os"
 import "core:strconv"
-
-conv_buf_cont := [dynamic]([8]byte){}
+import "core:strings"
 
 itos :: proc(i: int) -> string {
-  conv_buf: [8]byte
-  append(&conv_buf_cont, conv_buf)
-  return strconv.itoa(conv_buf_cont[len(conv_buf_cont) - 1][:], i)
+  conv_buf := make([]byte, 8)
+  defer delete_slice(conv_buf)
+  return strings.clone(strconv.itoa(conv_buf, i))
 }
 
 better_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {

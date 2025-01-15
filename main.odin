@@ -72,6 +72,9 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
     }
 
     switch token_list[index^] {
+    case "\n":
+      index^ += 1
+      continue
     case ")":
       if layer > 0 {
         if index^ < len(token_list) - 1 do index^ += 1
@@ -129,21 +132,24 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
     case '=':
       st = {
         instr_id  = n_instr.eq,
-        data      = "",
+        data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
+      index^ += 1
     case '>':
       st = {
         instr_id  = n_instr.gr,
-        data      = "",
+        data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
+      index^ += 1
     case '<':
       st = {
         instr_id  = n_instr.less,
-        data      = "",
+        data      = token_list[index^ + 1],
         data_type = n_type.ops,
       }
+      index^ += 1
     case:
       if st.instr_id == n_instr.none {
         for fn in builtin_funcs {
@@ -210,33 +216,21 @@ interpret_instrs :: proc() {
     case n_instr.consume:
       exec_relevant_fn(ins, i)
     case n_instr.add:
-      val := strconv.atoi(stack[len(stack) - 1].data)
+      val := strconv.atoi(pop(&stack).data)
       val += strconv.atoi(instr_list[i].data)
       stack[len(stack) - 1].data = itos(val)
     case n_instr.eq:
-      val1 := pop(&stack)
-      val2 := pop(&stack)
-      append(&stack, stack_struct{data = itos(val1 == val2), type = n_type.nint})
+      val := strconv.atoi(pop(&stack).data)
+      val2 := strconv.atoi(instr_list[i].data)
+      append(&stack, stack_struct{data = itos(auto_cast val == val2), type = n_type.nint})
     case n_instr.gr:
-      val2 := pop(&stack)
-      val1 := pop(&stack)
-      append(
-        &stack,
-        stack_struct {
-          data = itos(strconv.atoi(val1.data) > strconv.atoi(val2.data)),
-          type = n_type.nint,
-        },
-      )
+      val := strconv.atoi(pop(&stack).data)
+      val2 := strconv.atoi(instr_list[i].data)
+      append(&stack, stack_struct{data = itos(val > val2), type = n_type.nint})
     case n_instr.less:
-      val2 := pop(&stack)
-      val1 := pop(&stack)
-      append(
-        &stack,
-        stack_struct {
-          data = itos(strconv.atoi(val1.data) < strconv.atoi(val2.data)),
-          type = n_type.nint,
-        },
-      )
+      val := strconv.atoi(pop(&stack).data)
+      val2 := strconv.atoi(instr_list[i].data)
+      append(&stack, stack_struct{data = itos(val < val2), type = n_type.nint})
     case:
       better_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
@@ -266,12 +260,12 @@ main :: proc() {
       os.exit(1)
     }
     get_tokens(os.args[2], &token_list)
+
+    // fmt.println(token_list)
     index := 0
     parse_instrs(&index)
 
     interpret_instrs()
   }
-
-
 }
 

@@ -13,13 +13,12 @@ Tokenizer :: struct {
 
 get_next_token :: proc(tok: ^Tokenizer) -> string {
   for is_whitespace(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
-  if tok.res[tok.cursor] == '/' && tok.res[tok.cursor + 1] == '/' {
-    fmt.println("wut")
+  if (tok.res[tok.cursor] == '/' && tok.res[tok.cursor + 1] == '/') || tok.res[tok.cursor] == '#' {
     tok.cursor += 2
     for tok.res[tok.cursor] != '\n' && tok.cursor < tok.len - 1 {tok.cursor += 1}
-    tok.cursor += 1
+    // tok.cursor += 1
   }
-  for is_whitespace(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
+  // for is_whitespace(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
 
   token: string
 

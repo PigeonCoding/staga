@@ -3,38 +3,20 @@ package staga
 import "core:fmt"
 
 builtin_funcs := []builtin_fn {
-  builtin_fn {
-    name = []string{"println", "."},
-    n_consume = 1,
-    fn = nprintln_str,
-    args_type = []n_type{n_type.nstring},
-  },
-  builtin_fn {
-    name = []string{"println", "."},
-    n_consume = 1,
-    fn = nprintln_int,
-    args_type = []n_type{n_type.nint},
-  },
-  builtin_fn {
-    name = []string{"print"},
-    n_consume = 1,
-    fn = nprint_str,
-    args_type = []n_type{n_type.nstring},
-  },
-  builtin_fn {
-    name = []string{"print"},
-    n_consume = 1,
-    fn = nprint_int,
-    args_type = []n_type{n_type.nint},
-  },
+  builtin_fn{name = []string{"println", "."}, fn = nprintln_str, args_type = []n_type{.nstring}},
+  builtin_fn{name = []string{"println", "."}, fn = nprintln_int, args_type = []n_type{.nint}},
+  builtin_fn{name = []string{"print"}, fn = nprint_str, args_type = []n_type{.nstring}},
+  builtin_fn{name = []string{"print"}, fn = nprint_int, args_type = []n_type{.nint}},
 }
+
 
 builtin_fn :: struct {
   name:      []string,
-  n_consume: int,
+  // n_consume: int,
   fn:        proc(i: int) -> bool,
   args_type: []n_type,
 }
+
 
 nprint_str :: proc(i: int) -> bool {
   to_print := stack[len(stack) - 1].data[1:(len(stack[len(stack) - 1].data) - 1)]
