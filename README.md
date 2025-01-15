@@ -21,7 +21,7 @@ a stack-based programming language i am working on
  69 . # int printing (only unsigned)
 ```
 
-### arithmtics
+### arithmetics
 ```
  5 + 5 "5 + 5: " print .
  6 - 1 "6 - 1: " print .
