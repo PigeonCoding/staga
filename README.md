@@ -9,10 +9,10 @@ a stack-based programming language i am working on
 - common.odin: a file containing common structs and global vars
 
 ## Plans:
-- [] turing complete
-- [] compilable (bytecode || assembly) or transpilable to another language
-- [] odin fn calls or C fn calls (Interoperability)
-- [] functions (or something resembling them)
+- [ ] turing complete
+- [ ] compilable (bytecode || assembly) or transpilable to another language
+- [ ] odin fn calls or C fn calls (Interoperability)
+- [ ] functions (or something resembling them)
 
 ## "Features":
 ### printing
