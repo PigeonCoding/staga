@@ -12,3 +12,7 @@
 5 < 10 "5 < 10: " print .
 5 > 10 "5 > 10: " print .
 5 = 5  "5 = 5 : " print .
+
+"if-else:" "" . .
+1 > 0 if "condition is true" else "condition is false" done .
+69 if "value isn't zero" else "it is zero" done .

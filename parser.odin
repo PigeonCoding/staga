@@ -16,30 +16,56 @@ fn_skeleton :: struct {
 
 parse_instrs :: proc(index: ^int, layer: int = 0) {
   tmp_instrs := [dynamic]instr{}
-  defer (delete(tmp_instrs))
+  defer delete(tmp_instrs)
+  if_stack := [dynamic]int{}
+  defer delete(if_stack)
+
+  current_instr := 0
 
   for index^ < len(token_list) {
     st: instr = {
-      instr_id = n_instr.none,
-      data     = "",
+      data = "",
     }
 
-    switch token_list[index^] {
-    case "\n":
+    // if index^ >= len(token_list) - 1 do break
+    if token_list[index^] == "\n" || token_list[index^] == " " {
       index^ += 1
       continue
-    case ")":
-      if layer > 0 {
-        if index^ < len(token_list) - 1 do index^ += 1
-        break
-      }
-    case "(":
-      index^ += 1
-      parse_instrs(index, layer + 1)
     }
 
-    if index^ >= len(token_list) - 1 do break
 
+    if token_list[index^] == "if" {
+      // fmt.println("if")
+      st = {
+        instr_id  = n_instr.nif,
+        data      = "",
+        data_type = n_type.cjmp,
+      }
+      append(&if_stack, current_instr)
+    } else if token_list[index^] == "else" {
+      // fmt.println("else")
+      st = {
+        instr_id  = n_instr.nelse,
+        data      = "",
+        data_type = n_type.cjmp,
+      }
+      tmp_instrs[pop(&if_stack)].data = itos(current_instr)
+      append(&if_stack, current_instr)
+    } else if token_list[index^] == "done" {
+      // fmt.println("done")
+      st = {
+        instr_id  = n_instr.ndone,
+        data      = "",
+        data_type = n_type.cjmp,
+      }
+      tmp_instrs[pop(&if_stack)].data = itos(current_instr)
+    } else if token_list[index^] == "dup" {
+      st = {
+        instr_id  = n_instr.dup,
+        data      = "",
+        data_type = n_type.ops,
+      }
+    }
 
     switch token_list[index^][0] {
     case '0' ..= '9':
@@ -128,8 +154,11 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
 
     append(&tmp_instrs, st)
 
+    current_instr += 1
     index^ += 1
   }
+
+  a_assert(true, len(if_stack) == 0, "an if-else block was not closed")
 
   for n in tmp_instrs {
     append(&instr_list, n)

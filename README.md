@@ -10,7 +10,7 @@ a stack-based programming language i am working on
 
 ## Plans:
 - [ ] turing complete
-- [ ] compilable (bytecode || assembly) or transpilable to another language
+- [ ] compilable (bytecode)
 - [ ] odin fn calls or C fn calls (Interoperability)
 - [ ] functions (or something resembling them)
 
@@ -18,22 +18,30 @@ a stack-based programming language i am working on
 ### printing
 ```
  "Hello, World" . // string printing
- 69 . # int printing (only unsigned)
+ "nope"         print // prints but no newline
+ 420            println # the same as .
+ 69             . # int printing (only unsigned)
 ```
 
 ### arithmetics
 ```
- 5 + 5
- 6 - 1
- 2 * 10
- 10 / 5
+ 5 + 5  .
+ 6 - 1  .
+ 2 * 10 .
+ 10 / 5 .
 ```
 
 ### Conditions
 ```
- 5 < 10
- 5 > 10
- 5 = 5
+ 5 < 10 .
+ 5 > 10 .
+ 5 = 5  .
+```
+
+### Control Flow
+```
+ 1 if "yes" else "no" done .
+ 69 if "non zero" else "it is zero" done .
 ```
 
 ## How To Use:

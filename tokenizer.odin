@@ -81,10 +81,10 @@ get_tokens :: proc(file: string, token_list: ^[dynamic]string) {
     os.exit(1)
   }
   tok.len = len(tok.res)
-  append(token_list, "(")
+  // append(token_list, "(")
 
   for tok.cursor < tok.len - 1 {append(token_list, get_next_token(&tok))}
 
-  append(token_list, ")")
+  append(token_list, " ")
 }
 

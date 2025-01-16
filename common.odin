@@ -14,6 +14,7 @@ n_type_names := []string {
   n_type.nint    = "int",
   n_type.ops     = "ops",
   n_type.fn      = "fn",
+  n_type.cjmp    = "cjmp",
 }
 
 n_type :: enum {
@@ -22,6 +23,7 @@ n_type :: enum {
   nint,
   ops,
   fn,
+  cjmp,
 }
 
 instr :: struct {
@@ -34,29 +36,37 @@ n_instr_names := []string {
   n_instr.none    = "none",
   n_instr.consume = "consume",
   n_instr.push    = "push",
-  n_instr.pop     = "pop",
+  // n_instr.pop     = "pop",
   n_instr.add     = "add",
   n_instr.minus   = "minus",
   n_instr.mult    = "mult",
   n_instr.div     = "div",
-  n_instr.tmp     = "tmp",
+  // n_instr.tmp     = "tmp",
   n_instr.eq      = "eq",
   n_instr.gr      = "gr",
   n_instr.less    = "less",
+  n_instr.nif     = "if",
+  n_instr.ndone   = "done",
+  n_instr.nelse   = "else",
+  n_instr.dup     = "dup",
 }
 
 n_instr :: enum {
   none,
   consume,
   push,
-  pop,
+  // pop,
   add,
   minus,
   mult,
   div,
-  tmp,
+  // tmp,
   eq,
   gr,
   less,
+  nif,
+  nelse,
+  ndone,
+  dup,
 }
 

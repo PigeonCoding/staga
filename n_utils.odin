@@ -14,6 +14,7 @@ itos :: proc(i: int) -> string {
 
 a_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {
   if !cond {
+    fmt.print("ERROR: ")
     for m in rest {
       fmt.printf("{}", m)
     }

@@ -24,9 +24,11 @@ main :: proc() {
       os.exit(1)
     }
     get_tokens(os.args[2], &token_list)
+    // fmt.println(token_list)
 
     index := 0
     parse_instrs(&index)
+    // fmt.println(instr_list)
 
     interpret_instrs()
   } else {

@@ -1,4 +1,20 @@
-"condition:" "" . .
-5 < 10 "5 < 10: " print .
-5 > 10 "5 > 10: " print .
-5 = 5 "5 = 5: " print .
+50
+
+dup > 89 if "A" .
+else
+  dup > 69 if "B" .
+  else
+    dup > 59 if "C" .
+    else
+      dup > 49 if "D" .
+      else
+        dup > 39 if "E"
+        else
+          "F".
+        done
+      done
+    done
+  done
+done
+
+
