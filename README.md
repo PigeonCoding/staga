@@ -17,10 +17,10 @@ a stack-based programming language i am working on
 ## "Features":
 ### printing
 ```
- "Hello, World" . // string printing
- "nope"         print // prints but no newline
+ "Hello, World" .       // string printing
+ "nope"         print   // prints but no newline
  420            println # the same as .
- 69             . # int printing (only unsigned)
+ 69             .       # int printing (only unsigned)
 ```
 
 ### arithmetics
@@ -40,11 +40,12 @@ a stack-based programming language i am working on
 
 ### Control Flow
 ```
- 1 if "yes" else "no" done .
+ 1  if "yes"      else "no"         done .
  69 if "non zero" else "it is zero" done .
 ```
 
 ## How To Use:
+first install [odin](https://odin-lang.org/)
 build:
 ```console
  make build-debug
