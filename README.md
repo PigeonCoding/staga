@@ -46,7 +46,8 @@ a stack-based programming language i am working on
 
 ## How To Use:
 first install [odin](https://odin-lang.org/)
-build:
+
+then
 ```console
  make build-debug
  make build-release
