@@ -94,10 +94,27 @@ interpret_instrs :: proc() {
       i = strconv.atoi(instr_list[i].data)
     case n_instr.ndone, n_instr.none, n_instr.nwhile:
     case n_instr.ndo:
+      check_type(n_type.nint)
       cmp := pop(&stack)
       if strconv.atoi(cmp.data) == 0 do i = strconv.atoi(instr_list[i].data)
     case n_instr.nend:
       i = strconv.atoi(instr_list[i].data)
+    case n_instr.nmems:
+      check_type(n_type.nint)
+      val := pop(&stack)
+      mem[strconv.atoi(val.data)] = pop(&stack)
+    case n_instr.nmeml:
+      check_type(n_type.nint)
+      val := pop(&stack)
+      append(&stack, mem[strconv.atoi(val.data)])
+    case n_instr.swap:
+      check_type(n_type.nint)
+      swap_num := strconv.atoi(pop(&stack).data)
+      if swap_num > 1 {
+        tmp := stack[len(&stack) - 1]
+        stack[len(&stack) - 1] = stack[len(&stack) - swap_num]
+        stack[len(&stack) - swap_num] = tmp
+      }
     case:
       a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
@@ -106,6 +123,14 @@ interpret_instrs :: proc() {
   }
 }
 exec_relevant_fn :: proc(st: instr, i: int) {
+
+
+  a_assert(
+    true,
+    stack[len(stack) - 1].type != n_type.none,
+    "memory case non initialized tried to be used",
+  )
+
   a_assert(true, len(stack) > 0, "the stack is empty")
   for fn in builtin_funcs {
     for f in fn.name {
@@ -120,10 +145,11 @@ exec_relevant_fn :: proc(st: instr, i: int) {
   a_assert(
     true,
     false,
-    "no fn ",
+    "no fn '",
     st.data,
-    " for arg_type ",
+    "' for arg_type '",
     n_type_names[stack[len(stack) - 1].type],
+    "'",
   )
 }
 nprint_str :: proc(i: int) -> bool {

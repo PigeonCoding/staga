@@ -38,6 +38,7 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       continue
     }
 
+    skip := false
 
     if token_list[index^] == "if" {
       // fmt.println("if")
@@ -101,82 +102,109 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       a_assert(true, stack_len == pop(&while_stack), "while block was not cleaned up")
       st.data = itos(while_i)
       tmp_instrs[do_i].data = itos(current_instr)
+    } else if token_list[index^] == "mems" {
+      st = {
+        instr_id  = n_instr.nmems,
+        data      = "",
+        data_type = n_type.mem,
+      }
+      stack_len -= 2
+      // index^ += 1
+      // skip = true
+    } else if token_list[index^] == "meml" {
+      st = {
+        instr_id  = n_instr.nmeml,
+        data      = "",
+        data_type = n_type.mem,
+      }
+      // stack_len += 1
+      // index^ += 1
+      // skip = true
+    } else if token_list[index^] == "swap" {
+      st = {
+        instr_id  = n_instr.swap,
+        data      = "",
+        data_type = n_type.ops,
+      }
     }
 
-    switch token_list[index^][0] {
-    case '0' ..= '9':
-      st = {
-        instr_id  = n_instr.push,
-        data      = token_list[index^],
-        data_type = n_type.nint,
-      }
-      stack_len += 1
-    case '"':
-      st = {
-        instr_id  = n_instr.push,
-        data      = token_list[index^],
-        data_type = n_type.nstring,
-      }
-      stack_len += 1
-    case '+':
-      st = {
-        instr_id  = n_instr.add,
-        data      = token_list[index^ + 1],
-        data_type = n_type.ops,
-      }
-      index^ += 1
-    case '-':
-      st = {
-        instr_id  = n_instr.minus,
-        data      = token_list[index^ + 1],
-        data_type = n_type.ops,
-      }
-      index^ += 1
-    case '*':
-      st = {
-        instr_id  = n_instr.mult,
-        data      = token_list[index^ + 1],
-        data_type = n_type.ops,
-      }
-      index^ += 1
-    case '/':
-      st = {
-        instr_id  = n_instr.div,
-        data      = token_list[index^ + 1],
-        data_type = n_type.ops,
-      }
-      index^ += 1
-    case '=':
-      st = {
-        instr_id  = n_instr.eq,
-        data      = token_list[index^ + 1],
-        data_type = n_type.ops,
-      }
-      index^ += 1
-    case '>':
-      st = {
-        instr_id  = n_instr.gr,
-        data      = token_list[index^ + 1],
-        data_type = n_type.ops,
-      }
-      index^ += 1
-    case '<':
-      st = {
-        instr_id  = n_instr.less,
-        data      = token_list[index^ + 1],
-        data_type = n_type.ops,
-      }
-      index^ += 1
-    case:
-      if st.instr_id == n_instr.none {
-        for fn in builtin_funcs_name {
-          if token_list[index^] == fn.name {
-            st = {
-              instr_id  = n_instr.consume,
-              data      = token_list[index^],
-              data_type = n_type.fn,
+
+    if !skip {
+      switch token_list[index^][0] {
+      case '0' ..= '9':
+        st = {
+          instr_id  = n_instr.push,
+          data      = token_list[index^],
+          data_type = n_type.nint,
+        }
+        stack_len += 1
+      case '"':
+        st = {
+          instr_id  = n_instr.push,
+          data      = token_list[index^],
+          data_type = n_type.nstring,
+        }
+        stack_len += 1
+      case '+':
+        st = {
+          instr_id  = n_instr.add,
+          data      = token_list[index^ + 1],
+          data_type = n_type.ops,
+        }
+        index^ += 1
+      case '-':
+        st = {
+          instr_id  = n_instr.minus,
+          data      = token_list[index^ + 1],
+          data_type = n_type.ops,
+        }
+        index^ += 1
+      case '*':
+        st = {
+          instr_id  = n_instr.mult,
+          data      = token_list[index^ + 1],
+          data_type = n_type.ops,
+        }
+        index^ += 1
+      case '/':
+        st = {
+          instr_id  = n_instr.div,
+          data      = token_list[index^ + 1],
+          data_type = n_type.ops,
+        }
+        index^ += 1
+      case '=':
+        st = {
+          instr_id  = n_instr.eq,
+          data      = token_list[index^ + 1],
+          data_type = n_type.ops,
+        }
+        index^ += 1
+      case '>':
+        st = {
+          instr_id  = n_instr.gr,
+          data      = token_list[index^ + 1],
+          data_type = n_type.ops,
+        }
+        index^ += 1
+      case '<':
+        st = {
+          instr_id  = n_instr.less,
+          data      = token_list[index^ + 1],
+          data_type = n_type.ops,
+        }
+        index^ += 1
+      case:
+        if st.instr_id == n_instr.none {
+          for fn in builtin_funcs_name {
+            if token_list[index^] == fn.name {
+              st = {
+                instr_id  = n_instr.consume,
+                data      = token_list[index^],
+                data_type = n_type.fn,
+              }
+              stack_len -= fn.consum_num
             }
-            stack_len -= fn.consum_num
           }
         }
       }

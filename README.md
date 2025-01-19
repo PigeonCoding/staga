@@ -10,8 +10,8 @@ a stack-based programming language i am working on
 
 ## Plans:
 - [ ] turing complete
-- [ ] compilable (bytecode)
-- [ ] odin fn calls or C fn calls (Interoperability)
+- [ ] compilable (bytecode) or transpilable
+- [ ] Interoperability with other languages
 - [ ] functions (or something resembling them)
 
 ## "Features":
@@ -44,6 +44,17 @@ a stack-based programming language i am working on
  69 if "non zero" else "it is zero" done .
 
  0 while dup < 100 do dup . + 1 end
+```
+
+### stack manipulation
+```
+ 1 2 3 3 swap . . // this swaps the top element with the 3th one aka 1 and 3 in this case
+```
+
+### memory
+```
+ 10 2 mems // stores 10 in memory no 2
+ 2 meml .  // loads the value in memory no 2 and prints it
 ```
 
 ## How To Use:

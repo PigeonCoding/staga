@@ -15,6 +15,7 @@ n_type_names := []string {
   n_type.ops     = "ops",
   n_type.fn      = "fn",
   n_type.cjmp    = "cjmp",
+  n_type.mem     = "mem",
 }
 
 n_type :: enum {
@@ -24,6 +25,7 @@ n_type :: enum {
   ops,
   fn,
   cjmp,
+  mem,
 }
 
 instr :: struct {
@@ -50,8 +52,9 @@ n_instr_names := []string {
   n_instr.nwhile  = "while",
   n_instr.ndo     = "do",
   n_instr.nend    = "end",
-  n_instr.nmemp   = "nmemp",
+  n_instr.nmems   = "nmems",
   n_instr.nmeml   = "nmeml",
+  n_instr.swap    = "swap",
 }
 
 n_instr :: enum {
@@ -72,7 +75,8 @@ n_instr :: enum {
   nwhile,
   ndo,
   nend,
-  nmemp,
+  nmems,
   nmeml,
+  swap,
 }
 
