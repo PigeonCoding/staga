@@ -42,6 +42,8 @@ a stack-based programming language i am working on
 ```
  1  if "yes"      else "no"         done .
  69 if "non zero" else "it is zero" done .
+
+ 0 while dup < 100 do dup . + 1 end
 ```
 
 ## How To Use:

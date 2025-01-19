@@ -4,21 +4,26 @@ package staga
 import "core:fmt"
 
 builtin_funcs_name := []fn_skeleton {
-  fn_skeleton{name = "println", arg_type = []n_type{.nint, .nstring}},
-  fn_skeleton{name = ".", arg_type = []n_type{.nint, .nstring}},
-  fn_skeleton{name = "print", arg_type = []n_type{.nint, .nstring}},
+  fn_skeleton{name = "println", arg_type = []n_type{.nint, .nstring}, consum_num = 1},
+  fn_skeleton{name = ".", arg_type = []n_type{.nint, .nstring}, consum_num = 1},
+  fn_skeleton{name = "print", arg_type = []n_type{.nint, .nstring}, consum_num = 1},
 }
 
 fn_skeleton :: struct {
-  name:     string,
-  arg_type: []n_type,
+  name:       string,
+  arg_type:   []n_type,
+  consum_num: int,
 }
 
 parse_instrs :: proc(index: ^int, layer: int = 0) {
+  stack_len := 0
+
   tmp_instrs := [dynamic]instr{}
   defer delete(tmp_instrs)
   if_stack := [dynamic]int{}
   defer delete(if_stack)
+  while_stack := [dynamic]int{}
+  defer delete(while_stack)
 
   current_instr := 0
 
@@ -41,6 +46,7 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
         data      = "",
         data_type = n_type.cjmp,
       }
+      stack_len -= 1
       append(&if_stack, current_instr)
     } else if token_list[index^] == "else" {
       // fmt.println("else")
@@ -65,6 +71,36 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
         data      = "",
         data_type = n_type.ops,
       }
+      stack_len += 1
+    } else if token_list[index^] == "while" {
+      st = {
+        instr_id  = n_instr.nwhile,
+        data      = "",
+        data_type = n_type.cjmp,
+      }
+      append(&while_stack, stack_len)
+      append(&while_stack, current_instr)
+    } else if token_list[index^] == "do" {
+      st = {
+        instr_id  = n_instr.ndo,
+        data      = "",
+        data_type = n_type.cjmp,
+      }
+      append(&while_stack, current_instr)
+      stack_len -= 1
+
+    } else if token_list[index^] == "end" {
+      st = {
+        instr_id  = n_instr.nend,
+        data      = "",
+        data_type = n_type.cjmp,
+      }
+      do_i := pop(&while_stack)
+      while_i := pop(&while_stack)
+      tmp_instrs[do_i].data = itos(current_instr)
+      a_assert(true, stack_len == pop(&while_stack), "while block was not cleaned up")
+      st.data = itos(while_i)
+      tmp_instrs[do_i].data = itos(current_instr)
     }
 
     switch token_list[index^][0] {
@@ -74,12 +110,14 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
         data      = token_list[index^],
         data_type = n_type.nint,
       }
+      stack_len += 1
     case '"':
       st = {
         instr_id  = n_instr.push,
         data      = token_list[index^],
         data_type = n_type.nstring,
       }
+      stack_len += 1
     case '+':
       st = {
         instr_id  = n_instr.add,
@@ -138,19 +176,15 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
               data      = token_list[index^],
               data_type = n_type.fn,
             }
+            stack_len -= fn.consum_num
           }
         }
       }
     }
 
-    a_assert(
-      true,
-      st.instr_id != n_instr.none,
-      "something fishy with ",
-      token_list[index^],
-      " : ",
-      itos(index^),
-    )
+    a_assert(true, st.instr_id != n_instr.none, "something fishy with '", token_list[index^], "'")
+
+    a_assert(true, stack_len >= 0, "not enough element in the stack for this op '", st.data, "'")
 
     append(&tmp_instrs, st)
 

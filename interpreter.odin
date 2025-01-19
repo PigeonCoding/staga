@@ -4,7 +4,10 @@ import "core:fmt"
 import "core:slice"
 import "core:strconv"
 
+MEM_SIZE :: 1024 * 4
+
 stack := [dynamic]stack_struct{}
+mem := [MEM_SIZE]stack_struct{}
 
 builtin_funcs := []builtin_fn {
   builtin_fn{name = []string{"println", "."}, fn = nprintln_str, args_type = []n_type{.nstring}},
@@ -38,7 +41,7 @@ interpret_instrs :: proc() {
   i := 0
   for i < len(instr_list) {
     ins := instr_list[i]
-    switch ins.instr_id {
+    #partial switch ins.instr_id {
     case n_instr.push:
       append(&stack, stack_struct{data = ins.data, type = ins.data_type})
     case n_instr.dup:
@@ -89,7 +92,12 @@ interpret_instrs :: proc() {
       }
     case n_instr.nelse:
       i = strconv.atoi(instr_list[i].data)
-    case n_instr.ndone, n_instr.none:
+    case n_instr.ndone, n_instr.none, n_instr.nwhile:
+    case n_instr.ndo:
+      cmp := pop(&stack)
+      if strconv.atoi(cmp.data) == 0 do i = strconv.atoi(instr_list[i].data)
+    case n_instr.nend:
+      i = strconv.atoi(instr_list[i].data)
     case:
       a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
