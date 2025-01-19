@@ -48,7 +48,8 @@ a stack-based programming language i am working on
 
 ### stack manipulation
 ```
- 1 2 3 3 swap . . // this swaps the top element with the 3th one aka 1 and 3 in this case
+69 dup . .
+1 2 3 2 swap . . // this swaps the top element with the 2th one aka 3 and 2 respectively in this case
 ```
 
 ### memory

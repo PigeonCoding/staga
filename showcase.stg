@@ -16,3 +16,14 @@
 "if-else:" "" . .
 1 > 0 if "condition is true" else "condition is false" done .
 69 if "value isn't zero" else "it is zero" done .
+
+"while:" "" . .
+0 while dup < 20 do dup . + 1 end
+
+"stack manipulation:" "" . .
+1 2 3 2 swap . . .
+69 dup . .
+
+"memory:" "" . .
+"this was stores and loaded from memory" 1 mems
+1 meml .
