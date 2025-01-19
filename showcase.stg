@@ -3,22 +3,22 @@
 69 . # int printing (only unsigned)
 
 "arithmetics:" "" . .
-5 + 5  "5 + 5 : " print .
-6 - 1  "6 - 1 : " print .
-2 * 10 "2 * 10: " print .
-10 / 5 "10 / 5: " print .
+-5 5  +  "-5 + 5 : " print .
+6 1  -  "6 - 1 : " print .
+2 10 *  "2 * 10: " print .
+10 5 /  "10 / 5: " print .
 
 "condition:" "" . .
-5 < 10 "5 < 10: " print .
-5 > 10 "5 > 10: " print .
-5 = 5  "5 = 5 : " print .
+5 10 < "5 < 10: " print .
+5 10 > "5 > 10: " print .
+5 5  = "5 = 5 : " print .
 
 "if-else:" "" . .
-1 > 0 if "condition is true" else "condition is false" done .
+1 0 > if "condition is true" else "condition is false" done .
 69 if "value isn't zero" else "it is zero" done .
 
 "while:" "" . .
-0 while dup < 20 do dup . + 1 end
+0 while dup 20 < do dup . 1 + end
 
 "stack manipulation:" "" . .
 1 2 3 2 swap . . .

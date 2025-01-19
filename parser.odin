@@ -44,7 +44,6 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       // fmt.println("if")
       st = {
         instr_id  = n_instr.nif,
-        data      = "",
         data_type = n_type.cjmp,
       }
       stack_len -= 1
@@ -53,7 +52,6 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       // fmt.println("else")
       st = {
         instr_id  = n_instr.nelse,
-        data      = "",
         data_type = n_type.cjmp,
       }
       tmp_instrs[pop(&if_stack)].data = itos(current_instr)
@@ -62,21 +60,18 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       // fmt.println("done")
       st = {
         instr_id  = n_instr.ndone,
-        data      = "",
         data_type = n_type.cjmp,
       }
       tmp_instrs[pop(&if_stack)].data = itos(current_instr)
     } else if token_list[index^] == "dup" {
       st = {
         instr_id  = n_instr.dup,
-        data      = "",
         data_type = n_type.ops,
       }
       stack_len += 1
     } else if token_list[index^] == "while" {
       st = {
         instr_id  = n_instr.nwhile,
-        data      = "",
         data_type = n_type.cjmp,
       }
       append(&while_stack, stack_len)
@@ -84,7 +79,6 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
     } else if token_list[index^] == "do" {
       st = {
         instr_id  = n_instr.ndo,
-        data      = "",
         data_type = n_type.cjmp,
       }
       append(&while_stack, current_instr)
@@ -93,7 +87,6 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
     } else if token_list[index^] == "end" {
       st = {
         instr_id  = n_instr.nend,
-        data      = "",
         data_type = n_type.cjmp,
       }
       do_i := pop(&while_stack)
@@ -105,27 +98,27 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
     } else if token_list[index^] == "mems" {
       st = {
         instr_id  = n_instr.nmems,
-        data      = "",
         data_type = n_type.mem,
       }
       stack_len -= 2
-      // index^ += 1
-      // skip = true
     } else if token_list[index^] == "meml" {
       st = {
         instr_id  = n_instr.nmeml,
-        data      = "",
         data_type = n_type.mem,
       }
-      // stack_len += 1
-      // index^ += 1
-      // skip = true
     } else if token_list[index^] == "swap" {
       st = {
         instr_id  = n_instr.swap,
-        data      = "",
         data_type = n_type.ops,
       }
+    } else if token_list[index^][0] == '-' && len(token_list[index^]) > 1 {
+      st = {
+        instr_id  = n_instr.push,
+        data      = token_list[index^],
+        data_type = n_type.nint,
+      }
+      stack_len += 1
+      skip = true
     }
 
 
@@ -148,52 +141,51 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       case '+':
         st = {
           instr_id  = n_instr.add,
-          data      = token_list[index^ + 1],
           data_type = n_type.ops,
         }
-        index^ += 1
+        stack_len -= 1
       case '-':
         st = {
           instr_id  = n_instr.minus,
-          data      = token_list[index^ + 1],
           data_type = n_type.ops,
         }
-        index^ += 1
+        stack_len -= 1
+      // index^ += 1
       case '*':
         st = {
           instr_id  = n_instr.mult,
-          data      = token_list[index^ + 1],
           data_type = n_type.ops,
         }
-        index^ += 1
+        stack_len -= 1
+      // index^ += 1
       case '/':
         st = {
           instr_id  = n_instr.div,
-          data      = token_list[index^ + 1],
           data_type = n_type.ops,
         }
-        index^ += 1
+        // index^ += 1
+        stack_len -= 1
       case '=':
         st = {
           instr_id  = n_instr.eq,
-          data      = token_list[index^ + 1],
           data_type = n_type.ops,
         }
-        index^ += 1
+        // index^ += 1
+        stack_len -= 1
       case '>':
         st = {
           instr_id  = n_instr.gr,
-          data      = token_list[index^ + 1],
           data_type = n_type.ops,
         }
-        index^ += 1
+        // index^ += 1
+        stack_len -= 1
       case '<':
         st = {
           instr_id  = n_instr.less,
-          data      = token_list[index^ + 1],
           data_type = n_type.ops,
         }
-        index^ += 1
+        // index^ += 1
+        stack_len -= 1
       case:
         if st.instr_id == n_instr.none {
           for fn in builtin_funcs_name {

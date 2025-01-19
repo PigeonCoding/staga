@@ -20,30 +20,30 @@ a stack-based programming language i am working on
  "Hello, World" .       // string printing
  "nope"         print   // prints but no newline
  420            println # the same as .
- 69             .       # int printing (only unsigned)
+ -69            .       # int printing
 ```
 
 ### arithmetics
 ```
- 5 + 5  .
- 6 - 1  .
- 2 * 10 .
- 10 / 5 .
+ -5 5 + .
+ 6 1  - .
+ 2 10 * .
+ 10 5 / .
 ```
 
 ### Conditions
 ```
- 5 < 10 .
- 5 > 10 .
- 5 = 5  .
+ 5 10 < .
+ 5 10 > .
+ 5 5 =  .
 ```
 
 ### Control Flow
 ```
- 1  if "yes"      else "no"         done .
- 69 if "non zero" else "it is zero" done .
+ 1 0 > if "yes"   else "no"         done . // if 1 > 0
+ 69 if "non zero" else "it is zero" done . // if 69 != 0
 
- 0 while dup < 100 do dup . + 1 end
+ 0 while dup < 100 do dup . 1 + end
 ```
 
 ### stack manipulation
