@@ -12,7 +12,7 @@ a stack-based programming language i am working on
 - [ ] turing complete
 - [ ] compilable (bytecode) or transpilable
 - [ ] Interoperability with other languages
-- [ ] functions (or something resembling them)
+- [x] functions (or something resembling them) (macros where implement)
 
 ## "Features":
 ### printing
@@ -58,16 +58,26 @@ a stack-based programming language i am working on
  2 meml .  // loads the value in memory no 2 and prints it
 ```
 
+### macros
+```
+ macro test1_ // start of a macro names test1_
+  69 dup . 
+  351 + .
+ mend // end of the macro
+ test1_ // calling the macro
+```
+
 ## How To Use:
 first install [odin](https://odin-lang.org/)
 
 then
 ```console
  make linux-debug
- make windows-debug
-
  make linux-release
- make windows-release
+
+ build.bat debug
+ build.bat release
+
 ```
 
 run:

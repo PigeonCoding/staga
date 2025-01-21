@@ -15,25 +15,43 @@ fn_skeleton :: struct {
   consum_num: int,
 }
 
-parse_instrs :: proc(index: ^int, layer: int = 0) {
+
+macro_def :: struct {
+  name:    string,
+  content: []instr,
+}
+parse_instrs :: proc(
+  index: ^int,
+  token_list: ^[dynamic]string,
+  tmp_instrs: ^[dynamic]instr,
+  delimiter: string = " ",
+) {
   stack_len := 0
 
-  tmp_instrs := [dynamic]instr{}
-  defer delete(tmp_instrs)
+  tmp_macro := [dynamic]instr{}
+  defer delete(tmp_macro)
+
   if_stack := [dynamic]int{}
   defer delete(if_stack)
   while_stack := [dynamic]int{}
   defer delete(while_stack)
 
+  macro_list := [dynamic]macro_def{}
+  defer delete(macro_list)
   current_instr := 0
 
   for index^ < len(token_list) {
+
+    if delimiter != " " && token_list[index^] == delimiter do break
+
     st: instr = {
       data = "",
     }
 
-    // if index^ >= len(token_list) - 1 do break
-    if token_list[index^] == "\n" || token_list[index^] == " " || token_list[index^] == "\r" {
+    if token_list[index^] == "\n" ||
+       token_list[index^] == " " ||
+       token_list[index^] == "\r" ||
+       token_list[index^] == "" {
       index^ += 1
       continue
     }
@@ -41,7 +59,6 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
     skip := false
 
     if token_list[index^] == "if" {
-      // fmt.println("if")
       st = {
         instr_id  = n_instr.nif,
         data_type = n_type.cjmp,
@@ -49,7 +66,6 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       stack_len -= 1
       append(&if_stack, current_instr)
     } else if token_list[index^] == "else" {
-      // fmt.println("else")
       st = {
         instr_id  = n_instr.nelse,
         data_type = n_type.cjmp,
@@ -57,7 +73,6 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
       tmp_instrs[pop(&if_stack)].data = itos(current_instr)
       append(&if_stack, current_instr)
     } else if token_list[index^] == "done" {
-      // fmt.println("done")
       st = {
         instr_id  = n_instr.ndone,
         data_type = n_type.cjmp,
@@ -118,11 +133,22 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
         data_type = n_type.nint,
       }
       stack_len += 1
-      skip = true
-    }
+    } else if token_list[index^] == "macro" {
+      index^ += 2
+      shrink(&tmp_macro, 0)
 
+      mac := macro_def {
+        name = token_list[index^ - 1],
+      }
 
-    if !skip {
+      parse_instrs(index, token_list, &tmp_macro, "mend")
+      mac.content = tmp_macro[:]
+
+      index^ += 1
+      append(&macro_list, mac)
+      continue
+
+    } else {
       switch token_list[index^][0] {
       case '0' ..= '9':
         st = {
@@ -150,41 +176,35 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
           data_type = n_type.ops,
         }
         stack_len -= 1
-      // index^ += 1
       case '*':
         st = {
           instr_id  = n_instr.mult,
           data_type = n_type.ops,
         }
         stack_len -= 1
-      // index^ += 1
       case '/':
         st = {
           instr_id  = n_instr.div,
           data_type = n_type.ops,
         }
-        // index^ += 1
         stack_len -= 1
       case '=':
         st = {
           instr_id  = n_instr.eq,
           data_type = n_type.ops,
         }
-        // index^ += 1
         stack_len -= 1
       case '>':
         st = {
           instr_id  = n_instr.gr,
           data_type = n_type.ops,
         }
-        // index^ += 1
         stack_len -= 1
       case '<':
         st = {
           instr_id  = n_instr.less,
           data_type = n_type.ops,
         }
-        // index^ += 1
         stack_len -= 1
       case:
         if st.instr_id == n_instr.none {
@@ -199,23 +219,32 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
             }
           }
         }
+        if st.instr_id == n_instr.none {
+          f := false
+          for macro in macro_list {
+            if macro.name == token_list[index^] {
+              for ins in macro.content {
+                append(tmp_instrs, ins)
+              }
+              index^ += 1
+              f = true
+              break
+            }
+          }
+          if f do continue
+        }
+
       }
     }
-
-    a_assert(true, st.instr_id != n_instr.none, "something fishy with '", token_list[index^], "'")
+    a_assert(true, st.instr_id != n_instr.none, "unknown symbol '", token_list[index^])
 
     a_assert(true, stack_len >= 0, "not enough element in the stack for this op '", st.data, "'")
 
-    append(&tmp_instrs, st)
+    append(tmp_instrs, st)
 
     current_instr += 1
     index^ += 1
   }
 
   a_assert(true, len(if_stack) == 0, "an if-else block was not closed")
-
-  for n in tmp_instrs {
-    append(&instr_list, n)
-  }
 }
-

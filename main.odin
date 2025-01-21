@@ -4,7 +4,7 @@ import "core:fmt"
 import "core:os"
 
 print_help :: proc(msg: string = "") {
-  fmt.eprintln("ERROR: no command provided")
+  fmt.eprintln(msg)
   fmt.println("usage:")
   fmt.println(" *", os.args[0], "run <file> ----- runs the file")
   fmt.println(" * help ----- prints this message")
@@ -23,17 +23,21 @@ main :: proc() {
       print_help("ERROR: no file provided")
       os.exit(1)
     }
+
+    token_list := [dynamic]string{}
     get_tokens(os.args[2], &token_list)
     // fmt.println(token_list)
 
     index := 0
-    parse_instrs(&index)
-    // fmt.println(instr_list)
+    parse := [dynamic]instr{}
+    defer delete(parse)
 
-    interpret_instrs()
+    parse_instrs(&index, &token_list, &parse)
+    // fmt.println("parsed:", parse)
+
+    interpret_instrs(&parse)
   } else {
     print_help("invalid command")
     os.exit(1)
   }
 }
-

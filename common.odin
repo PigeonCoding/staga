@@ -1,8 +1,5 @@
 package staga
 
-token_list := [dynamic]string{}
-instr_list := [dynamic]instr{}
-
 stack_struct :: struct {
   data: string,
   type: n_type,
