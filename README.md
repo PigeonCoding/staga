@@ -72,8 +72,8 @@ first install [odin](https://odin-lang.org/)
 
 then
 ```console
- make linux-debug
- make linux-release
+ ./build.sh debug
+ ./build.sh release
 
  build.bat debug
  build.bat release
