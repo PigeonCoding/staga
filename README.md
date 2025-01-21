@@ -12,7 +12,7 @@ a stack-based programming language i am working on
 - [ ] turing complete
 - [ ] compilable (bytecode) or transpilable
 - [ ] Interoperability with other languages
-- [x] functions (or something resembling them) (macros where implement)
+- [x] functions (or something resembling them) [macros where implement](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)
 
 ## "Features":
 ### printing
