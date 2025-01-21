@@ -67,7 +67,7 @@ a stack-based programming language i am working on
  test1_ // calling the macro
 ```
 
-## How To Use:
+## How To Build:
 first install [odin](https://odin-lang.org/)
 
 then
@@ -79,12 +79,14 @@ then
  build.bat release
 
 ```
-
+## How to Use
 run:
 ```console
- ./build/staga_debug run showcase.stg // linux
- .\build\staga_debug run showcase.stg // windows
+ // linux
+ ./build/staga_debug run showcase.stg
+ ./build/staga run showcase.stg
 
- ./build/staga run showcase.stg // linux
- .\build\staga run showcase.stg // windows
+ // windows
+ .\build\staga_debug run showcase.stg
+ .\build\staga run showcase.stg
 ```
