@@ -63,12 +63,18 @@ first install [odin](https://odin-lang.org/)
 
 then
 ```console
- make build-debug
- make build-release
+ make linux-debug
+ make windows-debug
+
+ make linux-release
+ make windows-release
 ```
 
 run:
 ```console
- ./build/staga run showcase.stg
- ./build/staga_debug run showcase.stg
+ ./build/staga_debug run showcase.stg // linux
+ .\build\staga_debug run showcase.stg // windows
+
+ ./build/staga run showcase.stg // linux
+ .\build\staga run showcase.stg // windows
 ```

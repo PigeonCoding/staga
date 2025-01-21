@@ -33,7 +33,7 @@ parse_instrs :: proc(index: ^int, layer: int = 0) {
     }
 
     // if index^ >= len(token_list) - 1 do break
-    if token_list[index^] == "\n" || token_list[index^] == " " {
+    if token_list[index^] == "\n" || token_list[index^] == " " || token_list[index^] == "\r" {
       index^ += 1
       continue
     }

@@ -88,7 +88,10 @@ get_tokens :: proc(file: string, token_list: ^[dynamic]string) {
     os.exit(1)
   }
   tok.len = len(tok.res)
-  // append(token_list, "(")
+  if tok.len == 0 {
+    fmt.eprintfln("file '{}' is empty", file)
+    os.exit(1)
+  }
 
   for tok.cursor < tok.len - 1 {append(token_list, get_next_token(&tok))}
 
