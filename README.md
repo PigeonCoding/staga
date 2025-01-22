@@ -9,7 +9,7 @@ a stack-based programming language i am working on
 - common.odin: a file containing common structs and global vars
 
 ## Plans:
-- [ ] turing complete
+- [x] turing complete [implemented rule110]()
 - [ ] compilable (bytecode) or transpilable
 - [ ] Interoperability with other languages
 - [x] functions (or something resembling them) [macros where implement](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)
@@ -87,10 +87,10 @@ then
 run:
 ```console
  // linux
- ./build/staga_debug run showcase.stg
- ./build/staga run showcase.stg
+ ./build/staga_debug run examples/showcase.stg
+ ./build/staga run examples/showcase.stg
 
  // windows
- .\build\staga_debug run showcase.stg
- .\build\staga run showcase.stg
+ .\build\staga_debug run examples/showcase.stg
+ .\build\staga run examples/showcase.stg
 ```

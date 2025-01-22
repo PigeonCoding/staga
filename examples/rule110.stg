@@ -1,0 +1,140 @@
+
+macro case1
+  0 2 swap 
+  dup meml             0 = if
+    dup 1 + meml       0 = if
+      dup 2 + meml     0 = if
+        1 // return 1
+		3 swap pop
+      done
+    done
+  done
+mend
+
+macro case2
+  0 2 swap 
+  dup meml             0 = if
+    dup 1 + meml       0 = if
+      dup 2 + meml     1 = if
+        1 // return 1
+		3 swap pop
+      done
+    done
+  done
+mend
+
+macro case3
+  0 2 swap 
+  dup meml             0 = if
+    dup 1 + meml       1 = if
+      dup 2 + meml     0 = if
+        1 // return 1
+		3 swap pop
+      done
+    done
+  done
+mend
+
+macro case4
+  0 2 swap 
+  dup meml             0 = if
+    dup 1 + meml       1 = if
+      dup 2 + meml     1 = if
+        1 // return 1
+		3 swap pop
+      done
+    done
+  done
+mend
+
+macro case5
+  0 2 swap 
+  dup meml             1 = if
+    dup 1 + meml       0 = if
+      dup 2 + meml     0 = if
+        1 // return 1
+		3 swap pop
+      done
+    done
+  done
+mend
+
+macro case6
+  0 2 swap 
+  dup meml             1 = if
+    dup 1 + meml       0 = if
+      dup 2 + meml     1 = if
+        1 // return 1
+		3 swap pop
+      done
+    done
+  done
+mend
+
+macro case7
+  0 2 swap 
+  dup meml             1 = if
+    dup 1 + meml       1 = if
+      dup 2 + meml     0 = if
+        1 // return 1
+		3 swap pop
+      done
+    done
+  done
+mend
+
+macro case8
+  0 2 swap 
+  dup meml             1 = if
+    dup 1 + meml       1 = if
+      dup 2 + meml     1 = if
+        1 // return 1
+		3 swap pop
+      done
+    done
+  done
+mend
+
+// ----------------------------------------------------------------------------------------
+
+macro BOARD_SIZE 100 mend
+macro ITERATIONS 96 mend
+
+// init the 2 arrays
+0 while dup BOARD_SIZE < do
+  dup 0 2 swap mems
+  1 +
+end pop
+
+1 BOARD_SIZE     1 - mems
+1 BOARD_SIZE * 2 1 - mems
+
+
+0 while dup ITERATIONS < do
+  0 while dup BOARD_SIZE < do
+	dup meml 1 = if "*" print else " " print done
+    1 +
+  end pop
+
+  BOARD_SIZE while dup BOARD_SIZE 2 * < do
+    dup dup BOARD_SIZE - meml 2 swap mems
+    1 +
+  end pop
+
+  BOARD_SIZE while dup BOARD_SIZE 2 * 2 - < do
+    dup case2 case3 case4 case6 case7 6 swap + + + + 2 swap // returns 1 if it should live
+        case1 case5 case8             4 swap + +     2 swap // returns 1 if it should die
+        pop                                                 // pop duped iterator
+
+    // stack: i-should_live-should_die
+	1 = if 2 swap dup 1 + 0 2 swap BOARD_SIZE - mems 2 swap done
+	1 = if        dup 1 + 1 2 swap BOARD_SIZE - mems        done
+
+    1 +
+  end pop
+
+  1 +
+  "".
+end pop
+
+"".
