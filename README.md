@@ -9,7 +9,7 @@ a stack-based programming language i am working on
 - common.odin: a file containing common structs and global vars
 
 ## Plans:
-- [x] turing complete [implemented rule110]()
+- [x] turing complete [implemented rule110](https://github.com/PigeonCoding/staga/commit/6f295e31349de59f7852529347ede943333f564a)
 - [ ] compilable (bytecode) or transpilable
 - [ ] Interoperability with other languages
 - [x] functions (or something resembling them) [macros where implement](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)
