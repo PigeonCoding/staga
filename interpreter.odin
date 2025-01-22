@@ -1,6 +1,7 @@
 package staga
 
 import "core:fmt"
+import "core:os"
 import "core:slice"
 import "core:strconv"
 
@@ -22,7 +23,7 @@ builtin_fn :: struct {
   args_type: []n_type,
 }
 
-check_type :: proc(type: n_type) {
+check_type :: proc(type: n_type, instr: string = "") {
   a_assert(true, len(stack) > 0, "stack is empty")
   val := pop(&stack)
   a_assert(
@@ -32,7 +33,8 @@ check_type :: proc(type: n_type) {
     n_type_names[type],
     "' got '",
     n_type_names[val.type],
-    "'",
+    "' for ",
+    instr,
   )
   append(&stack, val)
 }
@@ -51,48 +53,49 @@ interpret_instrs :: proc(instr_list: ^[dynamic]instr) {
     case n_instr.consume:
       exec_relevant_fn(ins, i)
     case n_instr.add:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.add])
       val := strconv.atoi(pop(&stack).data)
       check_type(n_type.nint)
       val2 := strconv.atoi(pop(&stack).data)
       append(&stack, stack_struct{data = itos(val + val2), type = n_type.nint})
     case n_instr.minus:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.minus])
       val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.minus])
       val2 := strconv.atoi(pop(&stack).data)
       append(&stack, stack_struct{data = itos(val2 - val), type = n_type.nint})
     case n_instr.mult:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.mult])
       val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.mult])
       val2 := strconv.atoi(pop(&stack).data)
       append(&stack, stack_struct{data = itos(val * val2), type = n_type.nint})
     case n_instr.div:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.div])
       val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.div])
       val2 := strconv.atoi(pop(&stack).data)
       append(&stack, stack_struct{data = itos(val2 / val), type = n_type.nint})
     case n_instr.eq:
+      check_type(n_type.nint, n_instr_names[n_instr.eq])
       val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.eq])
       val2 := strconv.atoi(pop(&stack).data)
       append(&stack, stack_struct{data = itos(val == val2), type = n_type.nint})
     case n_instr.gr:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.gr])
       val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.gr])
       val2 := strconv.atoi(pop(&stack).data)
       append(&stack, stack_struct{data = itos(val2 > val), type = n_type.nint})
     case n_instr.less:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.less])
       val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.less])
       val2 := strconv.atoi(pop(&stack).data)
       append(&stack, stack_struct{data = itos(val2 < val), type = n_type.nint})
     case n_instr.nif:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.nif])
       val := strconv.atoi(pop(&stack).data)
       if val == 0 {
         i = strconv.atoi(instr_list[i].data)
@@ -101,26 +104,41 @@ interpret_instrs :: proc(instr_list: ^[dynamic]instr) {
       i = strconv.atoi(instr_list[i].data)
     case n_instr.ndone, n_instr.none, n_instr.nwhile:
     case n_instr.ndo:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.ndo])
+      // fmt.println("jmp")
       cmp := pop(&stack)
       if strconv.atoi(cmp.data) == 0 do i = strconv.atoi(instr_list[i].data)
     case n_instr.nend:
       i = strconv.atoi(instr_list[i].data)
     case n_instr.nmems:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.nmems])
       val := pop(&stack)
       mem[strconv.atoi(val.data)] = pop(&stack)
     case n_instr.nmeml:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.nmeml])
       val := pop(&stack)
       append(&stack, mem[strconv.atoi(val.data)])
     case n_instr.swap:
-      check_type(n_type.nint)
+      check_type(n_type.nint, n_instr_names[n_instr.swap])
       swap_num := strconv.atoi(pop(&stack).data)
       if swap_num > 1 {
         tmp := stack[len(&stack) - 1]
         stack[len(&stack) - 1] = stack[len(&stack) - swap_num]
         stack[len(&stack) - swap_num] = tmp
+      }
+    case n_instr.pop:
+      _ = pop(&stack)
+    case n_instr.stack:
+      fmt.print("stack: ")
+      for n, i in stack {
+        fmt.print(n.data, "")
+      }
+    case n_instr.int3:
+      buf: [1]byte
+      _, err := os.read(os.stdin, buf[:])
+      if err != nil {
+        fmt.eprintln("err {}", err)
+        os.exit(1)
       }
     case:
       a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
@@ -129,9 +147,8 @@ interpret_instrs :: proc(instr_list: ^[dynamic]instr) {
 
   }
 }
+
 exec_relevant_fn :: proc(st: instr, i: int) {
-
-
   a_assert(
     true,
     stack[len(stack) - 1].type != n_type.none,
@@ -159,6 +176,7 @@ exec_relevant_fn :: proc(st: instr, i: int) {
     "'",
   )
 }
+
 nprint_str :: proc(i: int) -> bool {
   to_print := stack[len(stack) - 1].data[1:(len(stack[len(stack) - 1].data) - 1)]
   print_str(to_print)

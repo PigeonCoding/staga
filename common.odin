@@ -35,6 +35,7 @@ n_instr_names := []string {
   n_instr.none    = "none",
   n_instr.consume = "consume",
   n_instr.push    = "push",
+  n_instr.pop     = "pop",
   n_instr.add     = "add",
   n_instr.minus   = "minus",
   n_instr.mult    = "mult",
@@ -52,12 +53,15 @@ n_instr_names := []string {
   n_instr.nmems   = "nmems",
   n_instr.nmeml   = "nmeml",
   n_instr.swap    = "swap",
+  n_instr.stack   = "stack",
+  n_instr.int3    = "int3",
 }
 
 n_instr :: enum {
   none,
   consume,
   push,
+  pop,
   add,
   minus,
   mult,
@@ -75,5 +79,7 @@ n_instr :: enum {
   nmems,
   nmeml,
   swap,
+  stack,
+  int3,
 }
 

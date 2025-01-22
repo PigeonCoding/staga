@@ -33,7 +33,11 @@ main :: proc() {
     defer delete(parse)
 
     parse_instrs(&index, &token_list, &parse)
-    // fmt.println("parsed:", parse)
+    // fmt.println("parsed:" parse)
+
+    // for n, i in parse {
+    //   fmt.println(i, n)
+    // }
 
     interpret_instrs(&parse)
   } else {
@@ -41,3 +45,4 @@ main :: proc() {
     os.exit(1)
   }
 }
+

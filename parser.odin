@@ -2,6 +2,8 @@
 package staga
 
 import "core:fmt"
+import "core:slice"
+import "core:strconv"
 
 builtin_funcs_name := []fn_skeleton {
   fn_skeleton{name = "println", arg_type = []n_type{.nint, .nstring}, consum_num = 1},
@@ -25,8 +27,10 @@ parse_instrs :: proc(
   token_list: ^[dynamic]string,
   tmp_instrs: ^[dynamic]instr,
   delimiter: string = " ",
+  is_macro: bool = false,
 ) {
   stack_len := 0
+  base := len(tmp_instrs)
 
   tmp_macro := [dynamic]instr{}
   defer delete(tmp_macro)
@@ -64,14 +68,14 @@ parse_instrs :: proc(
         data_type = n_type.cjmp,
       }
       stack_len -= 1
-      append(&if_stack, current_instr)
+      append(&if_stack, current_instr - base)
     } else if token_list[index^] == "else" {
       st = {
         instr_id  = n_instr.nelse,
         data_type = n_type.cjmp,
       }
-      tmp_instrs[pop(&if_stack)].data = itos(current_instr)
-      append(&if_stack, current_instr)
+      tmp_instrs[pop(&if_stack)].data = itos(current_instr - base)
+      append(&if_stack, current_instr - base)
     } else if token_list[index^] == "done" {
       st = {
         instr_id  = n_instr.ndone,
@@ -90,13 +94,13 @@ parse_instrs :: proc(
         data_type = n_type.cjmp,
       }
       append(&while_stack, stack_len)
-      append(&while_stack, current_instr)
+      append(&while_stack, current_instr - base)
     } else if token_list[index^] == "do" {
       st = {
         instr_id  = n_instr.ndo,
         data_type = n_type.cjmp,
       }
-      append(&while_stack, current_instr)
+      append(&while_stack, current_instr - base)
       stack_len -= 1
 
     } else if token_list[index^] == "end" {
@@ -106,10 +110,32 @@ parse_instrs :: proc(
       }
       do_i := pop(&while_stack)
       while_i := pop(&while_stack)
-      tmp_instrs[do_i].data = itos(current_instr)
-      a_assert(true, stack_len == pop(&while_stack), "while block was not cleaned up")
+      tmp_instrs[do_i].data = itos(current_instr - base)
+      old_stack := pop(&while_stack)
+
+      // TODO: check for stack size before and after loop but with macros
+      // cause for now they are broken
+      // a_assert(
+      //   true,
+      //   stack_len <= old_stack,
+      //   "while block was not cleaned up '",
+      //   itos(stack_len),
+      // "' ? '",
+      //   itos(old_stack),
+      //   "'",
+      // )
+      // a_assert(
+      //   true,
+      //   stack_len >= old_stack,
+      //   "while block was cleaned too much '",
+      //   itos(stack_len),
+      //   "' ? '",
+      //   itos(old_stack),
+      //   "'",
+      // )
+      // a_assert(true, stack_len >= old_stak, "while block was cleaned too much")
       st.data = itos(while_i)
-      tmp_instrs[do_i].data = itos(current_instr)
+      tmp_instrs[do_i].data = itos(current_instr - base)
     } else if token_list[index^] == "mems" {
       st = {
         instr_id  = n_instr.nmems,
@@ -126,6 +152,7 @@ parse_instrs :: proc(
         instr_id  = n_instr.swap,
         data_type = n_type.ops,
       }
+      stack_len -= 1
     } else if token_list[index^][0] == '-' && len(token_list[index^]) > 1 {
       st = {
         instr_id  = n_instr.push,
@@ -134,20 +161,42 @@ parse_instrs :: proc(
       }
       stack_len += 1
     } else if token_list[index^] == "macro" {
+      // TODO: nested macros are not supported yet
+      // fmt.println("macro", token_list[index^ + 1])
       index^ += 2
-      shrink(&tmp_macro, 0)
+      clear(&tmp_macro)
 
       mac := macro_def {
         name = token_list[index^ - 1],
       }
 
-      parse_instrs(index, token_list, &tmp_macro, "mend")
-      mac.content = tmp_macro[:]
+      parse_instrs(index, token_list, &tmp_macro, "mend", true)
+      mac.content = slice.clone(tmp_macro[:])
 
       index^ += 1
       append(&macro_list, mac)
       continue
 
+    } else if token_list[index^] == "pop" {
+      st = {
+        instr_id  = n_instr.pop,
+        data      = "",
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
+    } else if token_list[index^] == "stack" {
+      st = {
+        instr_id  = n_instr.stack,
+        data      = "",
+        data_type = n_type.mem,
+      }
+
+    } else if token_list[index^] == "int3" {
+      st = {
+        instr_id  = n_instr.int3,
+        data      = "",
+        data_type = n_type.ops,
+      }
     } else {
       switch token_list[index^][0] {
       case '0' ..= '9':
@@ -223,8 +272,19 @@ parse_instrs :: proc(
           f := false
           for macro in macro_list {
             if macro.name == token_list[index^] {
+              // fmt.println(macro.name)
+              nn := current_instr
               for ins in macro.content {
-                append(tmp_instrs, ins)
+                k := ins
+                if k.instr_id == n_instr.nif ||
+                   k.instr_id == n_instr.nelse ||
+                   k.instr_id == n_instr.ndo ||
+                   k.instr_id == n_instr.nend {
+                  val := strconv.atoi(k.data) + nn
+                  k.data = itos(val)
+                }
+                append(tmp_instrs, k)
+                current_instr += 1
               }
               index^ += 1
               f = true
@@ -238,7 +298,23 @@ parse_instrs :: proc(
     }
     a_assert(true, st.instr_id != n_instr.none, "unknown symbol '", token_list[index^])
 
-    a_assert(true, stack_len >= 0, "not enough element in the stack for this op '", st.data, "'")
+
+    // TODO: Make it work some day but with macros it's kinda tricky
+    // a_assert(
+    //   true,
+    //   stack_len >= 0 || is_macro,
+    //   "not enough element in the stack for this op '",
+    //   st.data,
+    //   "'",
+    // )
+
+    // fmt.println(macro_list)
+    // for n in macro_list {
+    //   fmt.println(n.name)
+    //   for m in n.content {
+    //     fmt.println(m)
+    //   }
+    // }
 
     append(tmp_instrs, st)
 
@@ -248,3 +324,4 @@ parse_instrs :: proc(
 
   a_assert(true, len(if_stack) == 0, "an if-else block was not closed")
 }
+
