@@ -12,6 +12,7 @@ itos :: proc(i: int) -> string {
   return strings.clone(strconv.itoa(conv_buf, i))
 }
 
+// TODO: user fmt.assertf instead maybe?
 a_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {
   if !cond {
     fmt.print("ERROR: ")

@@ -6,9 +6,10 @@ import "core:os"
 print_help :: proc(msg: string = "") {
   fmt.eprintln(msg)
   fmt.println("usage", os.args[0], ":")
-  fmt.println(" *", "run file.stg                  ----- runs the file")
-  fmt.println(" *", "bytecode input.stg [out.bstg] ----- compiles the given file to bytecode")
-  fmt.println(" *", "exec file.bstg                ----- runs the file")
+  fmt.println(" * run file.stg                  ----- runs the file")
+  fmt.println(" * bytecode input.stg [out.bstg] ----- compiles the given file to bytecode")
+  fmt.println(" * exec file.bstg                ----- runs the file")
+  fmt.println(" * comp file.stg [out.odin]      ----- transpiles to odin file")
   fmt.println(" * help                          ----- prints this message")
 }
 
