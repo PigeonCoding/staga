@@ -1,13 +1,6 @@
 # Staga
 a stack-based programming language i am working on
 
-## File Structure:
-- tokenizer.odin: is a basic tokenizer
-- n_utils.odin: a bunch of utils functions
-- parser.odin: generates an instruction list to execute the program
-- interpreter.odin: as the name suggests it interprets the instructions and executes them
-- common.odin: a file containing common structs and global vars
-
 ## Plans:
 - [x] turing complete [implemented rule110](https://github.com/PigeonCoding/staga/commit/6f295e31349de59f7852529347ede943333f564a)
 - [x] compilable (bytecode) [bytecode compilation and execution implemented](https://github.com/PigeonCoding/staga/commit/bc22f1046224b568f210494b11b15f1a9d57a13c)
