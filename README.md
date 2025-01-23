@@ -12,7 +12,6 @@ a stack-based programming language i am working on
 ```
  "Hello, World" .       // string printing
  "nope"         print   // prints but no newline
- 420            println # the same as .
  -69            .       # int printing
  stack "" .             // prints the stack (no new line at the end)
 ```

@@ -5,19 +5,6 @@ import "core:fmt"
 import "core:slice"
 import "core:strconv"
 
-builtin_funcs_name := []fn_skeleton {
-  fn_skeleton{name = "println", arg_type = []n_type{.nint, .nstring}, consum_num = 1},
-  fn_skeleton{name = ".", arg_type = []n_type{.nint, .nstring}, consum_num = 1},
-  fn_skeleton{name = "print", arg_type = []n_type{.nint, .nstring}, consum_num = 1},
-}
-
-fn_skeleton :: struct {
-  name:       string,
-  arg_type:   []n_type,
-  consum_num: int,
-}
-
-
 macro_def :: struct {
   name:    string,
   content: []instr,
@@ -115,25 +102,6 @@ parse_instrs :: proc(
 
       // TODO: check for stack size before and after loop but with macros
       // cause for now they are broken
-      // a_assert(
-      //   true,
-      //   stack_len <= old_stack,
-      //   "while block was not cleaned up '",
-      //   itos(stack_len),
-      // "' ? '",
-      //   itos(old_stack),
-      //   "'",
-      // )
-      // a_assert(
-      //   true,
-      //   stack_len >= old_stack,
-      //   "while block was cleaned too much '",
-      //   itos(stack_len),
-      //   "' ? '",
-      //   itos(old_stack),
-      //   "'",
-      // )
-      // a_assert(true, stack_len >= old_stak, "while block was cleaned too much")
       st.data = itos(while_i)
       tmp_instrs[do_i].data = itos(current_instr - base)
     } else if token_list[index^] == "mems" {
@@ -162,7 +130,6 @@ parse_instrs :: proc(
       stack_len += 1
     } else if token_list[index^] == "macro" {
       // TODO: nested macros are not supported yet
-      // fmt.println("macro", token_list[index^ + 1])
       index^ += 2
       clear(&tmp_macro)
 
@@ -197,6 +164,20 @@ parse_instrs :: proc(
         data      = "",
         data_type = n_type.ops,
       }
+    } else if token_list[index^] == "." {
+      st = {
+        instr_id  = n_instr.dot,
+        data      = "",
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
+    } else if token_list[index^] == "print" {
+      st = {
+        instr_id  = n_instr.print,
+        data      = "",
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
     } else {
       switch token_list[index^][0] {
       case '0' ..= '9':
@@ -256,18 +237,6 @@ parse_instrs :: proc(
         }
         stack_len -= 1
       case:
-        if st.instr_id == n_instr.none {
-          for fn in builtin_funcs_name {
-            if token_list[index^] == fn.name {
-              st = {
-                instr_id  = n_instr.consume,
-                data      = token_list[index^],
-                data_type = n_type.fn,
-              }
-              stack_len -= fn.consum_num
-            }
-          }
-        }
         if st.instr_id == n_instr.none {
           f := false
           for macro in macro_list {
