@@ -41,7 +41,10 @@ get_next_token :: proc(tok: ^Tokenizer) -> string {
   } else if is_alphabetical(tok.res[tok.cursor]) {
     start := tok.cursor
 
-    for (is_alphabetical(tok.res[tok.cursor]) || is_numerical(tok.res[tok.cursor]) || tok.res[tok.cursor] == '_') && tok.cursor < tok.len - 1 {tok.cursor += 1}
+    for (is_alphabetical(tok.res[tok.cursor]) ||
+          is_numerical(tok.res[tok.cursor]) ||
+          tok.res[tok.cursor] == '_') &&
+        tok.cursor < tok.len - 1 {tok.cursor += 1}
 
     token = tok.res[start:tok.cursor]
     return token
@@ -99,3 +102,4 @@ get_tokens :: proc(file: string, token_list: ^[dynamic]string) {
 
   append(token_list, " ")
 }
+

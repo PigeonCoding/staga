@@ -1,36 +1,36 @@
-"--printing:" .
+"-- printing:" .
 "Hello, World" . // string printing
 69 . # int printing (only unsigned)
 
-"\n--arithmetics:" .
+"\n-- arithmetics:" .
 -5 5  +  "-5 + 5 : " print .
 6 1   -  "6  - 1 : " print .
 2 10  *  "2  * 10: " print .
 10 5  /  "10 / 5 : " print .
 
-"\n--condition:" .
+"\n-- condition:" .
 5 10 < "5 < 10: " print .
 5 10 > "5 > 10: " print .
 5 5  = "5 = 5 : " print .
 "please note: the result of the condition check is pushed to the stack that is why we can just print it since internally it is just an int" .
 
 
-"\n--if-else:" .
+"\n-- if-else:" .
 1 0 > if "condition is true" else "condition is false" done .
 69 if "value isn't zero" else "it is zero" done .
 
-"\n--while:" .
+"\n-- while:" .
 0 while dup 20 < do dup . 1 + end pop // remove the iterator after a loop
 
-"\n--stack manipulation:" . 
+"\n-- stack manipulation:" . 
 1 2 3 2 swap . . .
 69 dup print " " print .
 
-"\n--memory:" .
+"\n-- memory:" .
 "this was stores and loaded from memory" 1 mems
 1 meml .
 
-"\n--macros:" .
+"\n-- macros:" .
 macro test1_ // start of a macro names test1_
   69 dup . 
   351 + .

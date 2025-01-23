@@ -39,7 +39,7 @@ check_type :: proc(type: n_type, instr: string = "") {
   append(&stack, val)
 }
 
-interpret_instrs :: proc(instr_list: ^[dynamic]instr) {
+interpret_instrs :: proc(instr_list: []instr) {
   i := 0
   for i < len(instr_list) {
     ins := instr_list[i]
