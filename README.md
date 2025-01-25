@@ -3,7 +3,6 @@ a stack-based programming language i am working on
 
 ## Plans:
 - [x] turing complete [implemented rule110](https://github.com/PigeonCoding/staga/commit/6f295e31349de59f7852529347ede943333f564a)
-- [x] compilable (bytecode) [bytecode compilation and execution implemented](https://github.com/PigeonCoding/staga/commit/bc22f1046224b568f210494b11b15f1a9d57a13c)
 - [ ] Interoperability with other languages
 - [x] functions (or something resembling them) [macros were implement](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)
 

@@ -5,22 +5,24 @@ import "core:os"
 import "core:strconv"
 import "core:strings"
 
-splitter :: ",\t,"
+splitter :: "\n"
 
 bytecode_save :: proc(instrs: ^[dynamic]instr, path: string) {
   str := strings.Builder{}
   for ins in instrs {
-    fmt.sbprintf(
-      &str,
-      "{}{}{}{}{}{}",
-      cast(int)ins.instr_id,
-      splitter,
-      cast(int)ins.data_type,
-      splitter,
-      ins.data,
-      splitter,
-    )
+    switch _ in ins.data {
+    case int:
+      fmt.sbprintfln(&str, "{}//{}//{}", cast(int)ins.instr_id, cast(int)ins.data_type, ins.data)
+    case string:
+      le := len(ins.data.(string))
+      if le == 0 || ins.data.(string) == " " {
+        fmt.sbprintfln(&str, "{}//{}//nil", cast(int)ins.instr_id, cast(int)ins.data_type)
+      } else {
+        fmt.sbprintfln(&str, "{}//{}//{}", cast(int)ins.instr_id, cast(int)ins.data_type, ins.data)
+      }
+    }
   }
+
   file, err := os.open(path, os.O_CREATE, 0b0110100100) // this magic number does -rw-r--r--
   if err != nil {
     fmt.eprintln("could not create file cause", err)
@@ -43,17 +45,28 @@ bytecode_read :: proc(path: string) -> []instr {
     fmt.eprintln("could not read file", path, "cause", err)
     os.exit(1)
   }
-  i := 0
-  full := strings.split(file, splitter)
+  full := strings.split(file, "\n")
   instrs := [dynamic]instr{}
-  for i < len(full) - 3 {
+  for t in full {
     data: instr
-    data.instr_id = auto_cast strconv.atoi(full[i])
-    i += 1
-    data.data_type = auto_cast strconv.atoi(full[i])
-    i += 1
-    data.data = full[i]
-    i += 1
+
+    new := strings.split_n(t, "//", 3)
+    if len(new) < 3 {
+      continue
+    }
+
+    data.instr_id = auto_cast strconv.atoi(new[0])
+    data.data_type = auto_cast strconv.atoi(new[1])
+    if new[2] == "nil" do data.data = ""
+    else if data.data_type == n_type.nint || data.data_type == n_type.cjmp || data.data_type == n_type.mem do data.data = strconv.atoi(new[2])
+    else if data.data_type == n_type.nstring do data.data = new[2]
+    else {
+      // data.data = ""
+      fmt.println(new)
+      fmt.println(data)
+      assert(false, "bullshit")
+    }
+    // fmt.println(data)
     append(&instrs, data)
   }
   return instrs[:]
