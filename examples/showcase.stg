@@ -1,6 +1,8 @@
 "-- printing:" .
-"Hello, World" . // string printing
-69 . # int printing (only unsigned)
+"Hello, World" .           // string printing
+69             .           # int printing
+-69            .           # int printing
+1 2 3 stack    pop pop pop // prints the stack
 
 "\n-- arithmetics:" .
 -5 5  +  "-5 + 5 : " print .
@@ -13,7 +15,6 @@
 5 10 > "5 > 10: " print .
 5 5  = "5 = 5 : " print .
 "please note: the result of the condition check is pushed to the stack that is why we can just print it since internally it is just an int" .
-
 
 "\n-- if-else:" .
 1 0 > if "condition is true" else "condition is false" done .
