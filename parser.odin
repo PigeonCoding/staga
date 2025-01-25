@@ -61,14 +61,14 @@ parse_instrs :: proc(
         instr_id  = n_instr.nelse,
         data_type = n_type.cjmp,
       }
-      tmp_instrs[pop(&if_stack)].data = itos(current_instr - base)
+      tmp_instrs[pop(&if_stack)].data = current_instr - base
       append(&if_stack, current_instr - base)
     } else if token_list[index^] == "done" {
       st = {
         instr_id  = n_instr.ndone,
         data_type = n_type.cjmp,
       }
-      tmp_instrs[pop(&if_stack)].data = itos(current_instr)
+      tmp_instrs[pop(&if_stack)].data = current_instr
     } else if token_list[index^] == "dup" {
       st = {
         instr_id  = n_instr.dup,
@@ -97,13 +97,13 @@ parse_instrs :: proc(
       }
       do_i := pop(&while_stack)
       while_i := pop(&while_stack)
-      tmp_instrs[do_i].data = itos(current_instr - base)
+      tmp_instrs[do_i].data = current_instr - base
       old_stack := pop(&while_stack)
 
       // TODO: check for stack size before and after loop but with macros
       // cause for now they are broken
-      st.data = itos(while_i)
-      tmp_instrs[do_i].data = itos(current_instr - base)
+      st.data = while_i
+      tmp_instrs[do_i].data = current_instr - base
     } else if token_list[index^] == "mems" {
       st = {
         instr_id  = n_instr.nmems,
@@ -124,7 +124,7 @@ parse_instrs :: proc(
     } else if token_list[index^][0] == '-' && len(token_list[index^]) > 1 {
       st = {
         instr_id  = n_instr.push,
-        data      = token_list[index^],
+        data      = strconv.atoi(token_list[index^]),
         data_type = n_type.nint,
       }
       stack_len += 1
@@ -183,7 +183,7 @@ parse_instrs :: proc(
       case '0' ..= '9':
         st = {
           instr_id  = n_instr.push,
-          data      = token_list[index^],
+          data      = strconv.atoi(token_list[index^]),
           data_type = n_type.nint,
         }
         stack_len += 1
@@ -249,8 +249,8 @@ parse_instrs :: proc(
                    k.instr_id == n_instr.nelse ||
                    k.instr_id == n_instr.ndo ||
                    k.instr_id == n_instr.nend {
-                  val := strconv.atoi(k.data) + nn
-                  k.data = itos(val)
+
+                  k.data = k.data.(int) + nn
                 }
                 append(tmp_instrs, k)
                 current_instr += 1

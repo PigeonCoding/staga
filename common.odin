@@ -1,8 +1,13 @@
 package staga
 
 stack_struct :: struct {
-  data: string,
+  data: str_int,
   type: n_type,
+}
+
+str_int :: union {
+  string,
+  int,
 }
 
 n_type_names := []string {
@@ -27,7 +32,7 @@ n_type :: enum {
 
 instr :: struct {
   instr_id:  n_instr,
-  data:      string,
+  data:      str_int,
   data_type: n_type,
 }
 

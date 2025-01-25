@@ -7,8 +7,8 @@ import "core:strconv"
 
 MEM_SIZE :: 1024 * 4
 
-stack := [dynamic]stack_struct{}
-mem := [MEM_SIZE]stack_struct{}
+stack := [dynamic]str_int{}
+mem := [MEM_SIZE]str_int{}
 
 interpret_instrs :: proc(instr_list: []instr) {
   i := 0
@@ -16,7 +16,7 @@ interpret_instrs :: proc(instr_list: []instr) {
     ins := instr_list[i]
     #partial switch ins.instr_id {
     case n_instr.push:
-      append(&stack, stack_struct{data = ins.data, type = ins.data_type})
+      append(&stack, ins.data)
 
     case n_instr.dup:
       val := pop(&stack)
@@ -24,88 +24,56 @@ interpret_instrs :: proc(instr_list: []instr) {
       append(&stack, val)
 
     case n_instr.add:
-      check_type(n_type.nint, n_instr_names[n_instr.add])
-      val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint)
-      val2 := strconv.atoi(pop(&stack).data)
-      append(&stack, stack_struct{data = itos(val + val2), type = n_type.nint})
+      append(&stack, pop(&stack).(int) + pop(&stack).(int))
 
     case n_instr.minus:
-      check_type(n_type.nint, n_instr_names[n_instr.minus])
-      val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint, n_instr_names[n_instr.minus])
-      val2 := strconv.atoi(pop(&stack).data)
-      append(&stack, stack_struct{data = itos(val2 - val), type = n_type.nint})
+      val := pop(&stack).(int)
+      val2 := pop(&stack).(int)
+      append(&stack, val2 - val)
 
     case n_instr.mult:
-      check_type(n_type.nint, n_instr_names[n_instr.mult])
-      val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint, n_instr_names[n_instr.mult])
-      val2 := strconv.atoi(pop(&stack).data)
-      append(&stack, stack_struct{data = itos(val * val2), type = n_type.nint})
+      append(&stack, pop(&stack).(int) * pop(&stack).(int))
 
     case n_instr.div:
-      check_type(n_type.nint, n_instr_names[n_instr.div])
-      val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint, n_instr_names[n_instr.div])
-      val2 := strconv.atoi(pop(&stack).data)
-      append(&stack, stack_struct{data = itos(val2 / val), type = n_type.nint})
-
+      val := pop(&stack).(int)
+      val2 := pop(&stack).(int)
+      append(&stack, val2 * val)
     case n_instr.eq:
-      check_type(n_type.nint, n_instr_names[n_instr.eq])
-      val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint, n_instr_names[n_instr.eq])
-      val2 := strconv.atoi(pop(&stack).data)
-      append(&stack, stack_struct{data = itos(val == val2), type = n_type.nint})
+      append(&stack, cast(int)(pop(&stack).(int) == pop(&stack).(int)))
 
     case n_instr.gr:
-      check_type(n_type.nint, n_instr_names[n_instr.gr])
-      val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint, n_instr_names[n_instr.gr])
-      val2 := strconv.atoi(pop(&stack).data)
-      append(&stack, stack_struct{data = itos(val2 > val), type = n_type.nint})
+      append(&stack, cast(int)(pop(&stack).(int) < pop(&stack).(int)))
 
     case n_instr.less:
-      check_type(n_type.nint, n_instr_names[n_instr.less])
-      val := strconv.atoi(pop(&stack).data)
-      check_type(n_type.nint, n_instr_names[n_instr.less])
-      val2 := strconv.atoi(pop(&stack).data)
-      append(&stack, stack_struct{data = itos(val2 < val), type = n_type.nint})
+      append(&stack, cast(int)(pop(&stack).(int) > pop(&stack).(int)))
 
     case n_instr.nif:
-      check_type(n_type.nint, n_instr_names[n_instr.nif])
-      val := strconv.atoi(pop(&stack).data)
-      if val == 0 {
-        i = strconv.atoi(instr_list[i].data)
+      if pop(&stack).(int) == 0 {
+        i = instr_list[i].data.(int)
       }
 
     case n_instr.nelse:
-      i = strconv.atoi(instr_list[i].data)
+      i = instr_list[i].data.(int)
 
     case n_instr.ndone, n_instr.none, n_instr.nwhile:
 
     case n_instr.ndo:
-      check_type(n_type.nint, n_instr_names[n_instr.ndo])
-      // fmt.println("jmp")
-      cmp := pop(&stack)
-      if strconv.atoi(cmp.data) == 0 do i = strconv.atoi(instr_list[i].data)
+      if pop(&stack).(int) == 0 do i = instr_list[i].data.(int)
 
     case n_instr.nend:
-      i = strconv.atoi(instr_list[i].data)
+      i = instr_list[i].data.(int)
 
     case n_instr.nmems:
-      check_type(n_type.nint, n_instr_names[n_instr.nmems])
-      val := pop(&stack)
-      mem[strconv.atoi(val.data)] = pop(&stack)
+      mem[pop(&stack).(int)] = pop(&stack)
 
     case n_instr.nmeml:
-      check_type(n_type.nint, n_instr_names[n_instr.nmeml])
-      val := pop(&stack)
-      append(&stack, mem[strconv.atoi(val.data)])
+      // check_type(n_type.nint, n_instr_names[n_instr.nmeml])
+      // val := pop(&stack)
+      append(&stack, mem[pop(&stack).(int)])
 
     case n_instr.swap:
-      check_type(n_type.nint, n_instr_names[n_instr.swap])
-      swap_num := strconv.atoi(pop(&stack).data)
+      // check_type(n_type.nint, n_instr_names[n_instr.swap])
+      swap_num := pop(&stack).(int)
       if swap_num > 1 {
         tmp := stack[len(&stack) - 1]
         stack[len(&stack) - 1] = stack[len(&stack) - swap_num]
@@ -118,8 +86,9 @@ interpret_instrs :: proc(instr_list: []instr) {
     case n_instr.stack:
       fmt.print("stack: ")
       for n, i in stack {
-        fmt.print(n.data, "")
+        fmt.print(n, "")
       }
+      fmt.println()
 
     case n_instr.int3:
       buf: [1]byte
@@ -131,59 +100,30 @@ interpret_instrs :: proc(instr_list: []instr) {
 
     case n_instr.dot:
       val := pop(&stack)
-      if val.type == n_type.nint {
-        fmt.println(val.data)
-      } else if val.type == n_type.nstring {
-        print_str(val.data[1:len(val.data) - 1])
-        fmt.println("")
-      } else {
-        a_assert(
-          true,
-          false,
-          "expected int or string for '.' but got '",
-          n_type_names[val.type],
-          "'",
-        )
+
+      switch _ in val {
+      case int:
+        fmt.println(val.(int))
+      case string:
+        print_str(val.(string)[1:len(val.(string)) - 1])
+        fmt.println()
       }
 
     case n_instr.print:
       val := pop(&stack)
-      if val.type == n_type.nint {
-        fmt.print(val.data)
-      } else if val.type == n_type.nstring {
-        print_str(val.data[1:len(val.data) - 1])
-      } else {
-        a_assert(
-          true,
-          false,
-          "expected int or string for 'print' but got '",
-          n_type_names[val.type],
-          "'",
-        )
-      }
 
+      switch _ in val {
+      case int:
+        fmt.print(val.(int))
+      case string:
+        print_str(val.(string)[1:len(val.(string)) - 1])
+      }
     case:
       a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
     i += 1
 
   }
-}
-
-check_type :: proc(type: n_type, instr: string = "") {
-  a_assert(true, len(stack) > 0, "stack is empty")
-  val := pop(&stack)
-  a_assert(
-    true,
-    val.type == type,
-    "wrong type expected '",
-    n_type_names[type],
-    "' got '",
-    n_type_names[val.type],
-    "' for ",
-    instr,
-  )
-  append(&stack, val)
 }
 
 // i know this looks stupid but it's the best solution

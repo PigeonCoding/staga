@@ -28,6 +28,7 @@ main :: proc() {
     }
 
     token_list := [dynamic]string{}
+    defer delete(token_list)
     get_tokens(os.args[2], &token_list)
 
     index := 0
@@ -35,6 +36,7 @@ main :: proc() {
     defer delete(parse)
 
     parse_instrs(&index, &token_list, &parse)
+    // fmt.println(parse)
 
     interpret_instrs(parse[:])
   } else if os.args[1] == "bytecode" {
