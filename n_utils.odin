@@ -42,7 +42,7 @@ read_file :: proc(file: string) -> (res: string, err: os.Error) {
 }
 
 is_whitespace :: proc(c: byte) -> bool {
-  return c == ' ' || c == '\t' || c == '\n' || c == '\r'
+  return c == ' ' || c == '\t' || c == '\r'
 }
 
 is_numerical :: proc(c: byte) -> bool {

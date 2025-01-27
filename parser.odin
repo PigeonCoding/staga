@@ -11,7 +11,7 @@ macro_def :: struct {
 }
 parse_instrs :: proc(
   index: ^int,
-  token_list: ^[dynamic]string,
+  token_list: []Token,
   tmp_instrs: ^[dynamic]instr,
   delimiter: string = " ",
   is_macro: bool = false,
@@ -33,56 +33,58 @@ parse_instrs :: proc(
 
   for index^ < len(token_list) {
 
-    if delimiter != " " && token_list[index^] == delimiter do break
+    if delimiter != " " && token_list[index^].content == delimiter do break
+
 
     st: instr = {
       data = "",
     }
 
-    if token_list[index^] == "\n" ||
-       token_list[index^] == " " ||
-       token_list[index^] == "\r" ||
-       token_list[index^] == "" {
+    if token_list[index^].content == "\n" ||
+       token_list[index^].content == " " ||
+       token_list[index^].content == "\r" ||
+       token_list[index^].content == "\t" ||
+       token_list[index^].content == "" {
       index^ += 1
       continue
     }
 
     skip := false
 
-    if token_list[index^] == "if" {
+    if token_list[index^].content == "if" {
       st = {
         instr_id  = n_instr.nif,
         data_type = n_type.cjmp,
       }
       stack_len -= 1
       append(&if_stack, current_instr - base)
-    } else if token_list[index^] == "else" {
+    } else if token_list[index^].content == "else" {
       st = {
         instr_id  = n_instr.nelse,
         data_type = n_type.cjmp,
       }
       tmp_instrs[pop(&if_stack)].data = current_instr - base
       append(&if_stack, current_instr - base)
-    } else if token_list[index^] == "done" {
+    } else if token_list[index^].content == "done" {
       st = {
         instr_id  = n_instr.ndone,
         data_type = n_type.cjmp,
       }
       tmp_instrs[pop(&if_stack)].data = current_instr
-    } else if token_list[index^] == "dup" {
+    } else if token_list[index^].content == "dup" {
       st = {
         instr_id  = n_instr.dup,
         data_type = n_type.ops,
       }
       stack_len += 1
-    } else if token_list[index^] == "while" {
+    } else if token_list[index^].content == "while" {
       st = {
         instr_id  = n_instr.nwhile,
         data_type = n_type.cjmp,
       }
       append(&while_stack, stack_len)
       append(&while_stack, current_instr - base)
-    } else if token_list[index^] == "do" {
+    } else if token_list[index^].content == "do" {
       st = {
         instr_id  = n_instr.ndo,
         data_type = n_type.cjmp,
@@ -90,7 +92,7 @@ parse_instrs :: proc(
       append(&while_stack, current_instr - base)
       stack_len -= 1
 
-    } else if token_list[index^] == "end" {
+    } else if token_list[index^].content == "end" {
       st = {
         instr_id  = n_instr.nend,
         data_type = n_type.cjmp,
@@ -104,38 +106,39 @@ parse_instrs :: proc(
       // cause for now they are broken
       st.data = while_i
       tmp_instrs[do_i].data = current_instr - base
-    } else if token_list[index^] == "mems" {
+    } else if token_list[index^].content == "mems" {
       st = {
         instr_id  = n_instr.nmems,
         data_type = n_type.mem,
       }
       stack_len -= 2
-    } else if token_list[index^] == "meml" {
+    } else if token_list[index^].content == "meml" {
       st = {
         instr_id  = n_instr.nmeml,
         data_type = n_type.mem,
       }
-    } else if token_list[index^] == "swap" {
+    } else if token_list[index^].content == "swap" {
       st = {
         instr_id  = n_instr.swap,
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if token_list[index^][0] == '-' && len(token_list[index^]) > 1 {
+    } else if token_list[index^].content[0] == '-' && len(token_list[index^].content) > 1 {
       st = {
         instr_id  = n_instr.push,
-        data      = strconv.atoi(token_list[index^]),
+        data      = strconv.atoi(token_list[index^].content),
         data_type = n_type.nint,
       }
       stack_len += 1
-    } else if token_list[index^] == "macro" {
+    } else if token_list[index^].content == "macro" {
       // TODO: nested macros are not supported yet
-      index^ += 2
+      index^ += 1
       clear(&tmp_macro)
 
       mac := macro_def {
-        name = token_list[index^ - 1],
+        name = token_list[index^].content,
       }
+      index^ += 1
 
       parse_instrs(index, token_list, &tmp_macro, "mend", true)
       mac.content = slice.clone(tmp_macro[:])
@@ -144,34 +147,34 @@ parse_instrs :: proc(
       append(&macro_list, mac)
       continue
 
-    } else if token_list[index^] == "pop" {
+    } else if token_list[index^].content == "pop" {
       st = {
         instr_id  = n_instr.pop,
         data      = "",
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if token_list[index^] == "stack" {
+    } else if token_list[index^].content == "stack" {
       st = {
         instr_id  = n_instr.stack,
         data      = "",
         data_type = n_type.mem,
       }
 
-    } else if token_list[index^] == "int3" {
+    } else if token_list[index^].content == "int3" {
       st = {
         instr_id  = n_instr.int3,
         data      = "",
         data_type = n_type.ops,
       }
-    } else if token_list[index^] == "." {
+    } else if token_list[index^].content == "." {
       st = {
         instr_id  = n_instr.dot,
         data      = "",
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if token_list[index^] == "print" {
+    } else if token_list[index^].content == "print" {
       st = {
         instr_id  = n_instr.print,
         data      = "",
@@ -179,18 +182,18 @@ parse_instrs :: proc(
       }
       stack_len -= 1
     } else {
-      switch token_list[index^][0] {
+      switch token_list[index^].content[0] {
       case '0' ..= '9':
         st = {
           instr_id  = n_instr.push,
-          data      = strconv.atoi(token_list[index^]),
+          data      = strconv.atoi(token_list[index^].content),
           data_type = n_type.nint,
         }
         stack_len += 1
       case '"':
         st = {
           instr_id  = n_instr.push,
-          data      = token_list[index^],
+          data      = token_list[index^].content,
           data_type = n_type.nstring,
         }
         stack_len += 1
@@ -240,7 +243,7 @@ parse_instrs :: proc(
         if st.instr_id == n_instr.none {
           f := false
           for macro in macro_list {
-            if macro.name == token_list[index^] {
+            if macro.name == token_list[index^].content {
               // fmt.println(macro.name)
               nn := current_instr
               for ins in macro.content {
@@ -265,7 +268,15 @@ parse_instrs :: proc(
 
       }
     }
-    a_assert(true, st.instr_id != n_instr.none, "unknown symbol '", token_list[index^])
+    // a_assert(true, st.instr_id != n_instr.none, "unknown symbol '", token_list[index^].content)
+    fmt.assertf(
+      st.instr_id != n_instr.none,
+      "unknown symbol {}:{}:{} '{}'",
+      token_list[index^].file,
+      token_list[index^].row,
+      token_list[index^].col,
+      token_list[index^].content,
+    )
 
 
     // TODO: Make it work some day but with macros it's kinda tricky
