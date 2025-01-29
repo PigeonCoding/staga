@@ -37,7 +37,7 @@ interpret_instrs :: proc(instr_list: []instr) {
     case n_instr.div:
       val := pop(&stack).(int)
       val2 := pop(&stack).(int)
-      append(&stack, val2 * val)
+      append(&stack, val2 / val)
     case n_instr.eq:
       append(&stack, cast(int)(pop(&stack).(int) == pop(&stack).(int)))
 
