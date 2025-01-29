@@ -2,6 +2,7 @@ package staga
 
 import "core:fmt"
 import "core:os"
+import "core:strconv"
 import "core:strings"
 
 Tokenizer :: struct {
@@ -14,7 +15,7 @@ Tokenizer :: struct {
 }
 
 Token :: struct {
-  content:  string,
+  content:  str_int,
   row, col: uint,
   file:     string,
   skip:     bool,
@@ -48,7 +49,7 @@ get_next_token :: proc(tok: ^Tokenizer) -> (t: Token, end: bool = false) {
     tok.cursor += 1
     for is_numerical(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
 
-    token.content = tok.res[start:tok.cursor]
+    token.content = strconv.atoi(tok.res[start:tok.cursor])
     token.col = start - tok.start_row
     return token, false
   } else if is_numerical(tok.res[tok.cursor]) {
@@ -56,7 +57,7 @@ get_next_token :: proc(tok: ^Tokenizer) -> (t: Token, end: bool = false) {
 
     for is_numerical(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
 
-    token.content = tok.res[start:tok.cursor]
+    token.content = strconv.atoi(tok.res[start:tok.cursor])
     token.col = start - tok.start_row
     return token, false
   } else if is_alphabetical(tok.res[tok.cursor]) {
