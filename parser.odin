@@ -300,6 +300,54 @@ parse_instrs :: proc(
     index^ += 1
   }
 
-  a_assert(true, len(if_stack) == 0, "an if-else block was not closed")
+  if_num := 0
+  while_num := 0
+  stack_len = 0
+
+  for ins in tmp_instrs {
+    switch ins.instr_id {
+    case n_instr.nif:
+      if_num += 1
+    case n_instr.ndone:
+      if_num -= 1
+    case n_instr.ndo:
+      while_num += 1
+    case n_instr.nend:
+      while_num -= 1
+    case n_instr.push, n_instr.dup:
+      stack_len += 1
+    case n_instr.pop,
+         n_instr.add,
+         n_instr.minus,
+         n_instr.mult,
+         n_instr.div,
+         n_instr.swap,
+         n_instr.dot,
+         n_instr.print,
+         n_instr.gr,
+         n_instr.less,
+         n_instr.eq:
+      stack_len -= 1
+      fmt.assertf(
+        stack_len >= 0,
+        "tried to remove from the stack when there was not enough in it in instr {}",
+        n_instr_names[ins.instr_id],
+      )
+    case n_instr.nmems:
+      stack_len -= 2
+      fmt.assertf(
+        stack_len >= 0,
+        "tried to remove from the stack when there was not enough in it in instr {}",
+        n_instr_names[ins.instr_id],
+      )
+    case n_instr.none, n_instr.nwhile, n_instr.int3, n_instr.stack, n_instr.nelse, n_instr.nmeml:
+    }
+  }
+
+
+  a_assert(true, if_num == 0, "an if-else block was not closed")
+  a_assert(true, while_num == 0, "an while block was not closed")
+
+  // fmt.println(if_num, while_num)
 }
 
