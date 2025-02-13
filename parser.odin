@@ -15,7 +15,7 @@ parse_instrs :: proc(
   tmp_instrs: ^[dynamic]instr,
   delimiter: string = " ",
   is_macro: bool = false,
-) {
+) -> int {
   stack_len := 0
   base := len(tmp_instrs)
 
@@ -187,6 +187,30 @@ parse_instrs :: proc(
         data_type = n_type.ops,
       }
       stack_len -= 1
+    } else if token_list[index^].content == ">" {
+      st = {
+        instr_id  = n_instr.gr,
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
+    } else if token_list[index^].content == "<" {
+      st = {
+        instr_id  = n_instr.less,
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
+    } else if token_list[index^].content == ">=" {
+      st = {
+        instr_id  = n_instr.gre,
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
+    } else if token_list[index^].content == "<=" {
+      st = {
+        instr_id  = n_instr.lesse,
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
     } else {
       switch token_list[index^].content.(string)[0] {
       case '"':
@@ -223,18 +247,6 @@ parse_instrs :: proc(
       case '=':
         st = {
           instr_id  = n_instr.eq,
-          data_type = n_type.ops,
-        }
-        stack_len -= 1
-      case '>':
-        st = {
-          instr_id  = n_instr.gr,
-          data_type = n_type.ops,
-        }
-        stack_len -= 1
-      case '<':
-        st = {
-          instr_id  = n_instr.less,
           data_type = n_type.ops,
         }
         stack_len -= 1
@@ -326,6 +338,8 @@ parse_instrs :: proc(
          n_instr.print,
          n_instr.gr,
          n_instr.less,
+         n_instr.gre,
+         n_instr.lesse,
          n_instr.eq:
       stack_len -= 1
       fmt.assertf(
@@ -349,5 +363,6 @@ parse_instrs :: proc(
   a_assert(true, while_num == 0, "an while block was not closed")
 
   // fmt.println(if_num, while_num)
+  return current_instr
 }
 

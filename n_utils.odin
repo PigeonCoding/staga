@@ -58,6 +58,22 @@ is_alphanumerical :: proc(c: byte) -> bool {
 }
 
 is_operand :: proc(c: byte) -> bool {
-  return c == '+' || c == '-' || c == '=' || c == '/' || c == '*' || c == ':'
+  return(
+    c == '+' ||
+    c == '-' ||
+    c == '=' ||
+    c == '/' ||
+    c == '*' ||
+    c == ':' ||
+    c == '<' ||
+    c == '>' \
+  )
+}
+
+print_tokens :: proc(tokens: []Token) {
+  for t in tokens {
+    if t.content == "\n" || t.content == " " || t.skip == true do continue
+    fmt.printfln("{}:{}:{} {}", t.file, t.row, t.col, t.content)
+  }
 }
 

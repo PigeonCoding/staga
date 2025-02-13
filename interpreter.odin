@@ -47,6 +47,12 @@ interpret_instrs :: proc(instr_list: []instr) {
     case n_instr.less:
       append(&stack, cast(int)(pop(&stack).(int) > pop(&stack).(int)))
 
+    case n_instr.gre:
+      append(&stack, cast(int)(pop(&stack).(int) <= pop(&stack).(int)))
+
+    case n_instr.lesse:
+      append(&stack, cast(int)(pop(&stack).(int) >= pop(&stack).(int)))
+
     case n_instr.nif:
       if pop(&stack).(int) == 0 {
         i = instr_list[i].data.(int)
