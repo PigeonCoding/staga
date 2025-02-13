@@ -11,13 +11,6 @@ print_help :: proc(msg: string = "") {
   fmt.println(" * help                          ----- prints this message")
 }
 
-print_tokens :: proc(tokens: []Token) {
-  for t in tokens {
-    if t.content == "\n" || t.content == " " || t.skip == true do continue
-    fmt.printfln("{}:{}:{} {}", t.file, t.row, t.col, t.content)
-  }
-}
-
 main :: proc() {
   if len(os.args) < 2 {
     print_help("ERROR: no command provided")
