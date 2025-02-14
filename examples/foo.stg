@@ -1,0 +1,3 @@
+fn foo
+  "this comes from foo.stg" .
+fend

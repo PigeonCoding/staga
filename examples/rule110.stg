@@ -1,5 +1,5 @@
 
-macro case1
+fn case1
   0 2 swap 
   dup meml             0 = if
     dup 1 + meml       0 = if
@@ -9,9 +9,9 @@ macro case1
       done
     done
   done
-mend
+fend
 
-macro case2
+fn case2
   0 2 swap 
   dup meml             0 = if
     dup 1 + meml       0 = if
@@ -21,9 +21,9 @@ macro case2
       done
     done
   done
-mend
+fend
 
-macro case3
+fn case3
   0 2 swap 
   dup meml             0 = if
     dup 1 + meml       1 = if
@@ -33,9 +33,9 @@ macro case3
       done
     done
   done
-mend
+fend
 
-macro case4
+fn case4
   0 2 swap 
   dup meml             0 = if
     dup 1 + meml       1 = if
@@ -45,9 +45,9 @@ macro case4
       done
     done
   done
-mend
+fend
 
-macro case5
+fn case5
   0 2 swap 
   dup meml             1 = if
     dup 1 + meml       0 = if
@@ -57,9 +57,9 @@ macro case5
       done
     done
   done
-mend
+fend
 
-macro case6
+fn case6
   0 2 swap 
   dup meml             1 = if
     dup 1 + meml       0 = if
@@ -69,9 +69,9 @@ macro case6
       done
     done
   done
-mend
+fend
 
-macro case7
+fn case7
   0 2 swap 
   dup meml             1 = if
     dup 1 + meml       1 = if
@@ -81,9 +81,9 @@ macro case7
       done
     done
   done
-mend
+fend
 
-macro case8
+fn case8
   0 2 swap 
   dup meml             1 = if
     dup 1 + meml       1 = if
@@ -93,42 +93,42 @@ macro case8
       done
     done
   done
-mend
+fend
 
 // ----------------------------------------------------------------------------------------
 
-macro BOARD_SIZE 100 mend
-macro ITERATIONS 96 mend
+fn BOARD_SIZE 100 fend
+fn ITERATIONS 96 fend
 
 // init the 2 arrays
-0 while dup BOARD_SIZE < do
+0 while dup jmp BOARD_SIZE < do
   dup 0 2 swap mems
   1 +
 end pop
 
-1 BOARD_SIZE     1 - mems
-1 BOARD_SIZE * 2 1 - mems
+1 jmp BOARD_SIZE     1 - mems
+1 jmp BOARD_SIZE * 2 1 - mems
 
 
-0 while dup ITERATIONS < do
-  0 while dup BOARD_SIZE < do
+0 while dup jmp ITERATIONS < do
+  0 while dup jmp BOARD_SIZE < do
 	dup meml 1 = if "*" print else " " print done
     1 +
   end pop
 
-  BOARD_SIZE while dup BOARD_SIZE 2 * < do
-    dup dup BOARD_SIZE - meml 2 swap mems
+  jmp BOARD_SIZE while dup jmp BOARD_SIZE 2 * < do
+    dup dup jmp BOARD_SIZE - meml 2 swap mems
     1 +
   end pop
 
-  BOARD_SIZE while dup BOARD_SIZE 2 * 2 - < do
-    dup case2 case3 case4 case6 case7 6 swap + + + + 2 swap // returns 1 if it should live
-        case1 case5 case8             4 swap + +     2 swap // returns 1 if it should die
+  jmp BOARD_SIZE while dup jmp BOARD_SIZE 2 * 2 - < do
+    dup jmp case2 jmp case3 jmp case4 jmp case6 jmp case7 6 swap + + + + 2 swap // returns 1 if it should live
+        jmp case1 jmp case5 jmp case8             4 swap + +     2 swap // returns 1 if it should die
         pop                                                 // pop duped iterator
 
     // stack: i-should_live-should_die
-	1 = if 2 swap dup 1 + 0 2 swap BOARD_SIZE - mems 2 swap done
-	1 = if        dup 1 + 1 2 swap BOARD_SIZE - mems        done
+	1 = if 2 swap dup 1 + 0 2 swap jmp BOARD_SIZE - mems 2 swap done
+	1 = if        dup 1 + 1 2 swap jmp BOARD_SIZE - mems        done
 
     1 +
   end pop

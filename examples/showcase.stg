@@ -28,12 +28,16 @@
 69 dup print " " print .
 
 "\n-- memory:" .
-"this was stores and loaded from memory" 1 mems
+"this was stores in mem no 1 and loaded from memory" 1 mems
 1 meml .
 
-"\n-- macros:" .
-macro test1_ // start of a macro names test1_
+"\n-- functions:" .
+fn test1_ // start of a function names test1_
   69 dup . 
   351 + .
-mend // end of the macro
-test1_ // calling the macro
+fend // end of the function
+jmp test1_ // jumping to the macro
+
+"\n-- file loading:" .
+load "foo"
+jmp foo

@@ -1,23 +1,27 @@
-
 package staga
 
 import "core:fmt"
 import "core:slice"
 import "core:strconv"
+import "core:strings"
 
-macro_def :: struct {
+fn_def :: struct {
   name:    string,
   content: []instr,
 }
 parse_instrs :: proc(
   index: ^int,
   token_list: []Token,
-  tmp_instrs: ^[dynamic]instr,
+  instrs: ^[dynamic]instr,
+  current_instr: ^int,
+  fn_list: ^[dynamic]fn_def,
   delimiter: string = " ",
-  is_macro: bool = false,
+  is_fn: bool = false,
 ) -> int {
   stack_len := 0
-  base := len(tmp_instrs)
+  base := len(instrs)
+
+  ins_cnt := 0
 
   tmp_macro := [dynamic]instr{}
   defer delete(tmp_macro)
@@ -26,10 +30,6 @@ parse_instrs :: proc(
   defer delete(if_stack)
   while_stack := [dynamic]int{}
   defer delete(while_stack)
-
-  macro_list := [dynamic]macro_def{}
-  defer delete(macro_list)
-  current_instr := 0
 
   for index^ < len(token_list) {
 
@@ -62,21 +62,35 @@ parse_instrs :: proc(
         instr_id  = n_instr.nif,
         data_type = n_type.cjmp,
       }
+      // if is_fn do fmt.println("if:", ins_cnt)
+      // else do fmt.println("if:", current_instr^)
+
       stack_len -= 1
-      append(&if_stack, current_instr - base)
+      
+      if is_fn do append(&if_stack, ins_cnt)
+      else do append(&if_stack, current_instr^)
+
     } else if !num && token_list[index^].content.(string) == "else" {
       st = {
         instr_id  = n_instr.nelse,
         data_type = n_type.cjmp,
       }
-      tmp_instrs[pop(&if_stack)].data = current_instr - base
-      append(&if_stack, current_instr - base)
+
+      if is_fn do instrs[pop(&if_stack)].data = ins_cnt
+      else do instrs[pop(&if_stack)].data = current_instr^
+
+      if is_fn do append(&if_stack, ins_cnt)
+      else do append(&if_stack, current_instr^)
+
     } else if !num && token_list[index^].content.(string) == "done" {
       st = {
         instr_id  = n_instr.ndone,
         data_type = n_type.cjmp,
       }
-      tmp_instrs[pop(&if_stack)].data = current_instr
+
+      if is_fn do instrs[pop(&if_stack)].data = ins_cnt
+      else do instrs[pop(&if_stack)].data = current_instr^
+
     } else if !num && token_list[index^].content.(string) == "dup" {
       st = {
         instr_id  = n_instr.dup,
@@ -89,13 +103,13 @@ parse_instrs :: proc(
         data_type = n_type.cjmp,
       }
       append(&while_stack, stack_len)
-      append(&while_stack, current_instr - base)
+      append(&while_stack, current_instr^)
     } else if !num && token_list[index^].content.(string) == "do" {
       st = {
         instr_id  = n_instr.ndo,
         data_type = n_type.cjmp,
       }
-      append(&while_stack, current_instr - base)
+      append(&while_stack, current_instr^)
       stack_len -= 1
 
     } else if !num && token_list[index^].content.(string) == "end" {
@@ -105,13 +119,13 @@ parse_instrs :: proc(
       }
       do_i := pop(&while_stack)
       while_i := pop(&while_stack)
-      tmp_instrs[do_i].data = current_instr - base
+      instrs[do_i].data = current_instr^
       old_stack := pop(&while_stack)
 
       // TODO: check for stack size before and after loop but with macros
       // cause for now they are broken
       st.data = while_i
-      tmp_instrs[do_i].data = current_instr - base
+      instrs[do_i].data = current_instr^
     } else if !num && token_list[index^].content.(string) == "mems" {
       st = {
         instr_id  = n_instr.nmems,
@@ -136,21 +150,21 @@ parse_instrs :: proc(
         data_type = n_type.nint,
       }
       stack_len += 1
-    } else if !num && token_list[index^].content.(string) == "macro" {
+    } else if !num && token_list[index^].content.(string) == "fn" {
       // TODO: nested macros are not supported yet
       index^ += 1
       clear(&tmp_macro)
 
-      mac := macro_def {
+      mac := fn_def {
         name = token_list[index^].content.(string),
       }
       index^ += 1
 
-      parse_instrs(index, token_list, &tmp_macro, "mend", true)
+      parse_instrs(index, token_list, &tmp_macro, current_instr, fn_list, "fend", true)
       mac.content = slice.clone(tmp_macro[:])
 
       index^ += 1
-      append(&macro_list, mac)
+      append(fn_list, mac)
       continue
 
     } else if !num && token_list[index^].content.(string) == "pop" {
@@ -211,6 +225,50 @@ parse_instrs :: proc(
         data_type = n_type.ops,
       }
       stack_len -= 1
+    } else if token_list[index^].content == "load" {
+
+      index^ += 1
+
+      a_assert(
+        true,
+        token_list[index^].content.(string) != "\"\"",
+        "load path is empty ",
+        token_list[index^].file,
+      )
+      base_path := strings.trim_right_proc(token_list[index^].file, proc(t: rune) -> bool {
+          return t != '/'
+        })
+      base_path = strings.concatenate(
+        {
+          base_path,
+          token_list[index^].content.(string)[1:len(token_list[index^].content.(string)) - 1],
+          ".stg",
+        },
+      )
+
+      // fmt.println(base_path)
+      // assert(false)
+
+
+      n_token_list := [dynamic]Token{}
+      // defer delete(n_token_list)
+      get_tokens(base_path, &n_token_list)
+      // print_tokens(n_token_list[:])
+
+      ind := 0
+      parse_instrs(&ind, n_token_list[:], instrs, current_instr, fn_list)
+
+      index^ += 1
+      continue
+
+
+    } else if token_list[index^].content.(string) == "jmp" {
+      index^ += 1
+      st = {
+        instr_id = n_instr.jmp,
+        data     = token_list[index^].content.(string),
+      }
+
     } else {
       switch token_list[index^].content.(string)[0] {
       case '"':
@@ -251,31 +309,31 @@ parse_instrs :: proc(
         }
         stack_len -= 1
       case:
-        if st.instr_id == n_instr.none {
-          f := false
-          for macro in macro_list {
-            if macro.name == token_list[index^].content {
-              // fmt.println(macro.name)
-              nn := current_instr
-              for ins in macro.content {
-                k := ins
-                if k.instr_id == n_instr.nif ||
-                   k.instr_id == n_instr.nelse ||
-                   k.instr_id == n_instr.ndo ||
-                   k.instr_id == n_instr.nend {
+      // if st.instr_id == n_instr.none {
+      //   f := false
+      //   for macro in fn_list {
+      //     if macro.name == token_list[index^].content {
+      //       // fmt.println(macro.name)
+      //       // nn := current_instr^
+      //       // for ins in macro.content {
+      //       //   k := ins
+      //       //   if k.instr_id == n_instr.nif ||
+      //       //      k.instr_id == n_instr.nelse ||
+      //       //      k.instr_id == n_instr.ndo ||
+      //       //      k.instr_id == n_instr.nend {
 
-                  k.data = k.data.(int) + nn
-                }
-                append(tmp_instrs, k)
-                current_instr += 1
-              }
-              index^ += 1
-              f = true
-              break
-            }
-          }
-          if f do continue
-        }
+      //       //     k.data = k.data.(int) + nn
+      //       //   }
+      //       //   append(instrs, k)
+      //       //   current_instr^ += 1
+      //       // }
+      //       index^ += 1
+      //       f = true
+      //       break
+      //     }
+      //   }
+      //   // if f do continue
+      // }
 
       }
     }
@@ -288,27 +346,10 @@ parse_instrs :: proc(
       token_list[index^].content,
     )
 
+    append(instrs, st)
 
-    // TODO: Make it work some day but with macros it's kinda tricky
-    // a_assert(
-    //   true,
-    //   stack_len >= 0 || is_macro,
-    //   "not enough element in the stack for this op '",
-    //   st.data,
-    //   "'",
-    // )
-
-    // fmt.println(macro_list)
-    // for n in macro_list {
-    //   fmt.println(n.name)
-    //   for m in n.content {
-    //     fmt.println(m)
-    //   }
-    // }
-
-    append(tmp_instrs, st)
-
-    current_instr += 1
+    if !is_fn do current_instr^ += 1
+    else do ins_cnt += 1
     index^ += 1
   }
 
@@ -316,7 +357,9 @@ parse_instrs :: proc(
   while_num := 0
   stack_len = 0
 
-  for ins in tmp_instrs {
+  // TODO: check for stack_len not < 0 after some instrs
+
+  for ins in instrs {
     switch ins.instr_id {
     case n_instr.nif:
       if_num += 1
@@ -342,19 +385,15 @@ parse_instrs :: proc(
          n_instr.lesse,
          n_instr.eq:
       stack_len -= 1
-      fmt.assertf(
-        stack_len >= 0,
-        "tried to remove from the stack when there was not enough in it in instr {}",
-        n_instr_names[ins.instr_id],
-      )
     case n_instr.nmems:
       stack_len -= 2
-      fmt.assertf(
-        stack_len >= 0,
-        "tried to remove from the stack when there was not enough in it in instr {}",
-        n_instr_names[ins.instr_id],
-      )
-    case n_instr.none, n_instr.nwhile, n_instr.int3, n_instr.stack, n_instr.nelse, n_instr.nmeml:
+    case n_instr.none,
+         n_instr.nwhile,
+         n_instr.int3,
+         n_instr.stack,
+         n_instr.nelse,
+         n_instr.nmeml,
+         n_instr.jmp:
     }
   }
 
@@ -362,7 +401,7 @@ parse_instrs :: proc(
   a_assert(true, if_num == 0, "an if-else block was not closed")
   a_assert(true, while_num == 0, "an while block was not closed")
 
-  // fmt.println(if_num, while_num)
-  return current_instr
-}
+  // fmt.println(fn_list)
 
+  return current_instr^
+}

@@ -22,32 +22,30 @@ Token :: struct {
 }
 
 get_next_token :: proc(tok: ^Tokenizer) -> (t: Token, end: bool = false) {
-  for tok.cursor < tok.len - 1 && is_whitespace(tok.res[tok.cursor]) {tok.cursor += 1}
-  if tok.cursor >= tok.len do return Token{}, true
+  for tok.cursor <= tok.len && is_whitespace(tok.res[tok.cursor]) {tok.cursor += 1}
+  if tok.cursor > tok.len do return Token{}, true
   if (tok.res[tok.cursor] == '/' && tok.res[tok.cursor + 1] == '/') || tok.res[tok.cursor] == '#' {
     tok.cursor += 2
-    for tok.res[tok.cursor] != '\n' &&
-        tok.res[tok.cursor] != '\r' &&
-        tok.cursor < tok.len - 1 {tok.cursor += 1}
+    for tok.cursor <= tok.len &&
+        tok.res[tok.cursor] != '\n' &&
+        tok.res[tok.cursor] != '\r' {tok.cursor += 1}
   }
   if tok.res[tok.cursor] == '\n' {
     tok.start_row = tok.cursor + 1
     tok.cursor += 1
     tok.row += 1
   }
-
-  if tok.cursor >= tok.len do return Token{}, true
-
+  if tok.cursor > tok.len do return Token{}, true
 
   token: Token
   token.file = tok.file
   token.row = tok.row
   if tok.res[tok.cursor] == '-' &&
-     tok.cursor < tok.len - 1 &&
+     tok.cursor <= tok.len &&
      is_numerical(tok.res[tok.cursor + 1]) {
     start := tok.cursor
     tok.cursor += 1
-    for is_numerical(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
+    for tok.cursor <= tok.len && is_numerical(tok.res[tok.cursor]) {tok.cursor += 1}
 
     token.content = strconv.atoi(tok.res[start:tok.cursor])
     token.col = start - tok.start_row
@@ -55,7 +53,7 @@ get_next_token :: proc(tok: ^Tokenizer) -> (t: Token, end: bool = false) {
   } else if is_numerical(tok.res[tok.cursor]) {
     start := tok.cursor
 
-    for is_numerical(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
+    for tok.cursor <= tok.len && is_numerical(tok.res[tok.cursor]) {tok.cursor += 1}
 
     token.content = strconv.atoi(tok.res[start:tok.cursor])
     token.col = start - tok.start_row
@@ -63,10 +61,10 @@ get_next_token :: proc(tok: ^Tokenizer) -> (t: Token, end: bool = false) {
   } else if is_alphabetical(tok.res[tok.cursor]) {
     start := tok.cursor
 
-    for (is_alphabetical(tok.res[tok.cursor]) ||
-          is_numerical(tok.res[tok.cursor]) ||
-          tok.res[tok.cursor] == '_') &&
-        tok.cursor < tok.len - 1 {tok.cursor += 1}
+    for tok.cursor <= tok.len &&
+        (is_alphabetical(tok.res[tok.cursor]) ||
+            is_numerical(tok.res[tok.cursor]) ||
+            tok.res[tok.cursor] == '_') {tok.cursor += 1}
 
     token.content = tok.res[start:tok.cursor]
     token.col = start - tok.start_row
@@ -75,7 +73,7 @@ get_next_token :: proc(tok: ^Tokenizer) -> (t: Token, end: bool = false) {
     start := tok.cursor
     tok.cursor += 1
 
-    for tok.res[tok.cursor] != '"' && tok.cursor < tok.len - 1 {
+    for tok.res[tok.cursor] != '"' && tok.cursor <= tok.len - 1 {
       if tok.res[tok.cursor] == '\\' {
         tok.cursor += 1
       }
@@ -98,7 +96,7 @@ get_next_token :: proc(tok: ^Tokenizer) -> (t: Token, end: bool = false) {
   } else if is_operand(tok.res[tok.cursor]) {
     start := tok.cursor
 
-    for is_operand(tok.res[tok.cursor]) && tok.cursor < tok.len - 1 {tok.cursor += 1}
+    for tok.cursor <= tok.len && is_operand(tok.res[tok.cursor]) {tok.cursor += 1}
 
     token.content = tok.res[start:tok.cursor]
     token.col = start - tok.start_row
@@ -123,7 +121,7 @@ get_tokens :: proc(file: string, token_list: ^[dynamic]Token) {
     fmt.eprintfln("could not read because {}", f_err)
     os.exit(1)
   }
-  tok.len = len(tok.res)
+  tok.len = len(tok.res) - 1
   if tok.len == 0 {
     fmt.eprintfln("file '{}' is empty", file)
     os.exit(1)
@@ -139,4 +137,3 @@ get_tokens :: proc(file: string, token_list: ^[dynamic]Token) {
 
   append(token_list, Token{content = " ", file = file, row = tok.row, col = tok.cursor - tok.row})
 }
-

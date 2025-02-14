@@ -63,6 +63,7 @@ n_instr_names := []string {
   n_instr.int3   = "int3",
   n_instr.print  = "print",
   n_instr.dot    = ".",
+  n_instr.jmp    = "jmp",
 }
 
 n_instr :: enum {
@@ -92,5 +93,5 @@ n_instr :: enum {
   int3,
   print,
   dot,
+  jmp,
 }
-

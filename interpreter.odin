@@ -10,7 +10,7 @@ MEM_SIZE :: 1024 * 4
 stack := [dynamic]str_int{}
 mem := [MEM_SIZE]str_int{}
 
-interpret_instrs :: proc(instr_list: []instr) {
+interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
   i := 0
   for i < len(instr_list) {
     ins := instr_list[i]
@@ -123,6 +123,12 @@ interpret_instrs :: proc(instr_list: []instr) {
         fmt.print(val.(int))
       case string:
         print_str(val.(string)[1:len(val.(string)) - 1])
+      }
+    case n_instr.jmp:
+      for m in fn_list {
+        if m.name == ins.data.(string) {
+          interpret_instrs(m.content, fn_list)
+        }
       }
     case:
       a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")

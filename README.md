@@ -4,7 +4,7 @@ a stack-based programming language i am working on
 ## Plans:
 - [x] turing complete [implemented rule110](https://github.com/PigeonCoding/staga/commit/6f295e31349de59f7852529347ede943333f564a)
 - [ ] Interoperability with other languages
-- [x] functions (or something resembling them) [macros were implement](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)
+- [x] functions (or something resembling them) ~~[macros were implement](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)~~ [functions have been implemented]()
 
 ## "Features":
 ### printing
@@ -55,11 +55,23 @@ a stack-based programming language i am working on
 
 ### macros
 ```
- macro test1_ // start of a macro names test1_
+ fn test1_ // start of a macro names test1_
   69 dup . 
   351 + .
- mend // end of the macro
- test1_ // calling the macro
+ fend // end of the macro
+ jmp test1_ // calling the macro
+```
+
+### file loading
+```
+foo.stg
+ fn something
+  "foo" .
+ fend
+
+main.stg
+ load "foo"
+ jmp something
 ```
 
 ## How To Build:
