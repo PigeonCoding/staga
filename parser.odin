@@ -4,6 +4,8 @@ import "core:fmt"
 import "core:slice"
 import "core:strconv"
 import "core:strings"
+import "base:runtime"
+import "core:os"
 
 fn_def :: struct {
   name:    string,
@@ -235,9 +237,15 @@ parse_instrs :: proc(
         "load path is empty ",
         token_list[index^].file,
       )
-      base_path := strings.trim_right_proc(token_list[index^].file, proc(t: rune) -> bool {
-          return t != '/'
+
+      base_path := ""
+
+      if runtime.Odin_OS_Type.Windows == os.OS do base_path = strings.trim_right_proc(token_list[index^].file, proc(t: rune) -> bool {
+          return t != '\\'
         })
+      else do base_path = strings.trim_right_proc(token_list[index^].file, proc(t: rune) -> bool {
+        return t != '/'
+      })
       base_path = strings.concatenate(
         {
           base_path,
