@@ -10,7 +10,12 @@ MEM_SIZE :: 1024 * 4
 stack := [dynamic]str_int{}
 mem := [MEM_SIZE]str_int{}
 
+n := 0
+
 interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
+  n += 1
+  a_assert(true, n < 2200, "too much recusion try less")
+  fmt.println(n)
   i := 0
   for i < len(instr_list) {
     ins := instr_list[i]
@@ -73,12 +78,9 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       mem[pop(&stack).(int)] = pop(&stack)
 
     case n_instr.nmeml:
-      // check_type(n_type.nint, n_instr_names[n_instr.nmeml])
-      // val := pop(&stack)
       append(&stack, mem[pop(&stack).(int)])
 
     case n_instr.swap:
-      // check_type(n_type.nint, n_instr_names[n_instr.swap])
       swap_num := pop(&stack).(int)
       if swap_num > 1 {
         tmp := stack[len(&stack) - 1]
@@ -147,19 +149,18 @@ print_str :: proc(str: string) {
       fmt.println("")
       i += 1
     } else if str[i] == '\\' && str[i + 1] == 't' {
-      fmt.print("\t")
+      fmt.print('\t')
       i += 1
     } else if str[i] == '\\' && str[i + 1] == 'r' {
-      fmt.print("\r")
+      fmt.print('\r')
       i += 1
     } else if str[i] == '\\' && str[i + 1] == '"' {
-      fmt.print("\"")
+      fmt.print('\"')
       i += 1
     } else {
-      fmt.printf("%c", str[i])
+      fmt.print(str[i])
     }
 
     i += 1
   }
 }
-

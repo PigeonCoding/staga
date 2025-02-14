@@ -123,8 +123,8 @@ end pop
 
   jmp BOARD_SIZE while dup jmp BOARD_SIZE 2 * 2 - < do
     dup jmp case2 jmp case3 jmp case4 jmp case6 jmp case7 6 swap + + + + 2 swap // returns 1 if it should live
-        jmp case1 jmp case5 jmp case8             4 swap + +     2 swap // returns 1 if it should die
-        pop                                                 // pop duped iterator
+        jmp case1 jmp case5 jmp case8                     4 swap + +     2 swap // returns 1 if it should die
+        pop                                                                     // pop duped iterator
 
     // stack: i-should_live-should_die
 	1 = if 2 swap dup 1 + 0 2 swap jmp BOARD_SIZE - mems 2 swap done
