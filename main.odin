@@ -6,8 +6,8 @@ import "core:os"
 print_help :: proc(msg: string = "") {
   fmt.eprintln(msg)
   fmt.println("usage", os.args[0], ":")
-  fmt.println(" * run file.stg  *DEFAULT* ----- runs the file")
-  fmt.println(" * help                    ----- prints this message")
+  fmt.println(" * <file.stg>        ----- runs the file")
+  fmt.println(" * help              ----- prints this message")
 }
 
 main :: proc() {
@@ -18,31 +18,6 @@ main :: proc() {
   if os.args[1] == "help" {
     print_help()
     os.exit(0)
-  } else if os.args[1] == "run" {
-    if len(os.args) < 3 {
-      print_help("ERROR: no file provided")
-      os.exit(1)
-    }
-
-    token_list := [dynamic]Token{}
-    defer delete(token_list)
-    get_tokens(os.args[2], &token_list)
-    // print_tokens(token_list[:])
-    // fmt.println(token_list)
-
-    index := 0
-    parse := [dynamic]instr{}
-    defer delete(parse)
-
-    ins := 0
-    mac := [dynamic]fn_def{}
-    parse_instrs(&index, token_list[:], &parse, &ins, &mac)
-    // TODO: macros are jmped to so inlining after everything is
-    // parsed was a lil faster but for now it's fine
-
-    // fmt.println(parse)
-
-    interpret_instrs(parse[:], mac[:])
   } else {
     if len(os.args) < 2 {
       print_help("ERROR: no file provided")
@@ -70,3 +45,4 @@ main :: proc() {
     interpret_instrs(parse[:], mac[:])
   }
 }
+

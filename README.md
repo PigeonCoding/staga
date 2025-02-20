@@ -90,10 +90,10 @@ then
 run:
 ```console
  // linux
- ./build/staga_debug run examples/showcase.stg
- ./build/staga run examples/showcase.stg
+ ./build/staga_debug examples/showcase.stg
+ ./build/staga examples/showcase.stg
 
  // windows
- .\build\staga_debug run examples/showcase.stg
- .\build\staga run examples/showcase.stg
+ .\build\staga_debug examples/showcase.stg
+ .\build\staga examples/showcase.stg
 ```
