@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:os"
 import "core:slice"
 import "core:strconv"
+import "core:strings"
 
 MEM_SIZE :: 1024 * 4
 
@@ -14,8 +15,7 @@ n := 0
 
 interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
   n += 1
-  a_assert(true, n < 2200, "too much recusion try less")
-  fmt.println(n)
+  a_assert(true, n < 2000, "too much recusion try less")
   i := 0
   for i < len(instr_list) {
     ins := instr_list[i]
@@ -29,7 +29,18 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       append(&stack, val)
 
     case n_instr.add:
-      append(&stack, pop(&stack).(int) + pop(&stack).(int))
+      val := pop(&stack)
+      switch _ in val {
+      case int:
+        append(&stack, val.(int) + pop(&stack).(int))
+      case string:
+        val2 := pop(&stack)
+        // print_str expects the string to start with " and end with "
+        res := strings.concatenate(
+          {val2.(string)[0:len(val2.(string)) - 1], val.(string)[1:len(val.(string))]},
+        )
+        append(&stack, res)
+      }
 
     case n_instr.minus:
       val := pop(&stack).(int)
@@ -99,6 +110,7 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       fmt.println()
 
     case n_instr.int3:
+      // TODO: maybe do something better ?
       buf: [1]byte
       _, err := os.read(os.stdin, buf[:])
       if err != nil {
@@ -138,6 +150,7 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
     i += 1
 
   }
+  n -= 1
 }
 
 // i know this looks stupid but it's the best solution
@@ -158,7 +171,7 @@ print_str :: proc(str: string) {
       fmt.print('\"')
       i += 1
     } else {
-      fmt.print(str[i])
+      fmt.printf("%c", str[i])
     }
 
     i += 1
