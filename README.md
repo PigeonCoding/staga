@@ -88,7 +88,6 @@ then
 ```
 ## How to Use
 ### Note:
-CRLF is currently not working, will be fixed in the future
 run:
 ```console
  // linux

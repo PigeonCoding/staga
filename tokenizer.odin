@@ -115,12 +115,13 @@ get_tokens :: proc(file: string, token_list: ^[dynamic]Token) {
   tok: Tokenizer
   f_err: os.Error
   tok.res, f_err = read_file(file)
-  tok.file = file
-  tok.row = 1
   if f_err != nil {
     fmt.eprintfln("could not read because {}", f_err)
     os.exit(1)
   }
+  tok.res, _ = strings.replace_all(tok.res, "\r\n", "\n");
+  tok.file = file
+  tok.row = 1
   tok.len = len(tok.res) - 1
   if tok.len == 0 {
     fmt.eprintfln("file '{}' is empty", file)
