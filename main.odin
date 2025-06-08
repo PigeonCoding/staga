@@ -6,14 +6,10 @@ import "core:os/os2"
 import "core:strings"
 import fl "thirdparty/flag"
 
-
 main :: proc() {
 
   flags: fl.flag_container
-  output_file: string = "out.bstg"
-
   fl.add_flag(&flags, "help", false, "displays the help message")
-  fl.add_flag(&flags, "out", "", "sets the output path for the compilation")
 
 
   if len(os.args) < 2 {
@@ -32,9 +28,7 @@ main :: proc() {
     case "help":
       fmt.println("Usage:", os.args[0], "file.stg")
       fl.print_usage(&flags)
-      os.exit(1)
-    case "out":
-      output_file = f.value.(string)
+      os.exit(0)
     }
   }
 
