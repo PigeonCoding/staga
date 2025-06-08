@@ -11,6 +11,19 @@ MEM_SIZE :: 1024 * 4
 stack := [dynamic]str_int{}
 mem := [MEM_SIZE]str_int{}
 
+// maybe move most of the instructions handling here
+// it would be more ergonomic
+custom_instrs := [?]custom_instr_t {
+  {name = "split", function = proc(instr_list: []instr, fn_list: []fn_def) {
+      spliter := pop(&stack).(string)
+      str := pop(&stack).(string)
+      for s in strings.split(str, spliter[1:len(spliter) - 1]) {
+        append(&stack, s)
+      }
+    }},
+}
+
+
 n := 0
 
 interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
@@ -35,7 +48,7 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
         append(&stack, val.(int) + pop(&stack).(int))
       case string:
         val2 := pop(&stack)
-        // print_str expects the string to start with " and end with "
+        // print_str handles the string to start with " and end with "
         res := strings.concatenate(
           {val2.(string)[0:len(val2.(string)) - 1], val.(string)[1:len(val.(string))]},
         )
@@ -125,7 +138,7 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       case int:
         fmt.println(val.(int))
       case string:
-        print_str(val.(string)[1:len(val.(string)) - 1])
+        print_str(val.(string))
         fmt.println()
       }
 
@@ -136,8 +149,14 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       case int:
         fmt.print(val.(int))
       case string:
-        print_str(val.(string)[1:len(val.(string)) - 1])
+        print_str(val.(string))
       }
+    // case n_instr.additional:
+    //   for ad in custom_instrs {
+    //     if ad.name == ins.data.(string) {
+    //       ad.function(&stack, mem[:], instr_list, fn_list)
+    //     }
+    //   }
     case n_instr.jmp:
       for m in fn_list {
         if m.name == ins.data.(string) {
@@ -145,7 +164,17 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
         }
       }
     case:
-      a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
+      yes := false
+      for cu in custom_instrs {
+        if cu.name == ins.name {
+          fmt.println("found")
+          cu.function(instr_list, fn_list)
+          fmt.println(stack)
+          yes = true
+        }
+      }
+
+      a_assert(true, yes, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
     i += 1
 
@@ -158,6 +187,10 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
 print_str :: proc(str: string) {
   i := 0
   for i < len(str) {
+    if (i == len(str) - 1 && str[i] == '"') || (i == 0 && str[i] == '"') {
+      i += 1
+      continue
+    }
     if str[i] == '\\' && str[i + 1] == 'n' {
       fmt.println("")
       i += 1

@@ -45,4 +45,3 @@ main :: proc() {
     interpret_instrs(parse[:], mac[:])
   }
 }
-

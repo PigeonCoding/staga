@@ -1,11 +1,11 @@
 package staga
 
+import "base:runtime"
 import "core:fmt"
+import "core:os"
 import "core:slice"
 import "core:strconv"
 import "core:strings"
-import "base:runtime"
-import "core:os"
 
 fn_def :: struct {
   name:    string,
@@ -64,15 +64,20 @@ parse_instrs :: proc(
         instr_id  = n_instr.nif,
         data_type = n_type.cjmp,
       }
-      // if is_fn do fmt.println("if:", ins_cnt)
-      // else do fmt.println("if:", current_instr^)
 
       stack_len -= 1
-      
+
       if is_fn do append(&if_stack, ins_cnt)
       else do append(&if_stack, current_instr^)
 
-    } else if !num && token_list[index^].content.(string) == "else" {
+    } else if num {
+      st = {
+        instr_id  = n_instr.push,
+        data      = token_list[index^].content.(int),
+        data_type = n_type.nint,
+      }
+      stack_len += 1
+    } else if token_list[index^].content.(string) == "else" {
       st = {
         instr_id  = n_instr.nelse,
         data_type = n_type.cjmp,
@@ -84,7 +89,7 @@ parse_instrs :: proc(
       if is_fn do append(&if_stack, ins_cnt)
       else do append(&if_stack, current_instr^)
 
-    } else if !num && token_list[index^].content.(string) == "done" {
+    } else if token_list[index^].content.(string) == "done" {
       st = {
         instr_id  = n_instr.ndone,
         data_type = n_type.cjmp,
@@ -93,20 +98,20 @@ parse_instrs :: proc(
       if is_fn do instrs[pop(&if_stack)].data = ins_cnt
       else do instrs[pop(&if_stack)].data = current_instr^
 
-    } else if !num && token_list[index^].content.(string) == "dup" {
+    } else if token_list[index^].content.(string) == "dup" {
       st = {
         instr_id  = n_instr.dup,
         data_type = n_type.ops,
       }
       stack_len += 1
-    } else if !num && token_list[index^].content.(string) == "while" {
+    } else if token_list[index^].content.(string) == "while" {
       st = {
         instr_id  = n_instr.nwhile,
         data_type = n_type.cjmp,
       }
       append(&while_stack, stack_len)
       append(&while_stack, current_instr^)
-    } else if !num && token_list[index^].content.(string) == "do" {
+    } else if token_list[index^].content.(string) == "do" {
       st = {
         instr_id  = n_instr.ndo,
         data_type = n_type.cjmp,
@@ -114,7 +119,7 @@ parse_instrs :: proc(
       append(&while_stack, current_instr^)
       stack_len -= 1
 
-    } else if !num && token_list[index^].content.(string) == "end" {
+    } else if token_list[index^].content.(string) == "end" {
       st = {
         instr_id  = n_instr.nend,
         data_type = n_type.cjmp,
@@ -128,31 +133,24 @@ parse_instrs :: proc(
       // cause for now they are broken
       st.data = while_i
       instrs[do_i].data = current_instr^
-    } else if !num && token_list[index^].content.(string) == "mems" {
+    } else if token_list[index^].content.(string) == "mems" {
       st = {
         instr_id  = n_instr.nmems,
         data_type = n_type.mem,
       }
       stack_len -= 2
-    } else if !num && token_list[index^].content.(string) == "meml" {
+    } else if token_list[index^].content.(string) == "meml" {
       st = {
         instr_id  = n_instr.nmeml,
         data_type = n_type.mem,
       }
-    } else if !num && token_list[index^].content.(string) == "swap" {
+    } else if token_list[index^].content.(string) == "swap" {
       st = {
         instr_id  = n_instr.swap,
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if num {
-      st = {
-        instr_id  = n_instr.push,
-        data      = token_list[index^].content.(int),
-        data_type = n_type.nint,
-      }
-      stack_len += 1
-    } else if !num && token_list[index^].content.(string) == "fn" {
+    } else if token_list[index^].content.(string) == "fn" {
       // TODO: nested macros are not supported yet
       index^ += 1
       clear(&tmp_macro)
@@ -241,8 +239,8 @@ parse_instrs :: proc(
       base_path := ""
 
       if runtime.Odin_OS_Type.Windows == os.OS do base_path = strings.trim_right_proc(token_list[index^].file, proc(t: rune) -> bool {
-          return t != '\\'
-        })
+        return t != '\\'
+      })
       else do base_path = strings.trim_right_proc(token_list[index^].file, proc(t: rune) -> bool {
         return t != '/'
       })
@@ -345,6 +343,21 @@ parse_instrs :: proc(
 
       }
     }
+
+
+    {
+      str := false
+      #partial switch _ in token_list[index^].content {
+      case string:
+        str = true
+      }
+      if st.instr_id == n_instr.none && str {
+        st.instr_id = n_instr.additional
+        st.name = token_list[index^].content.(string)
+        // os.exit(1)
+      }
+    }
+
     fmt.assertf(
       st.instr_id != n_instr.none,
       "unknown symbol {}:{}:{} '{}'",
@@ -368,7 +381,7 @@ parse_instrs :: proc(
   // TODO: check for stack_len not < 0 after some instrs
 
   for ins in instrs {
-    switch ins.instr_id {
+    #partial switch ins.instr_id {
     case n_instr.nif:
       if_num += 1
     case n_instr.ndone:
@@ -401,7 +414,15 @@ parse_instrs :: proc(
          n_instr.stack,
          n_instr.nelse,
          n_instr.nmeml,
+         n_instr.additional,
          n_instr.jmp:
+      case:
+        l: for n in custom_instrs {
+          if n.name == ins.name {
+            stack_len += n.stack_change
+            break l 
+          }
+        }
     }
   }
 
