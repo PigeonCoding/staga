@@ -11,7 +11,7 @@ a stack-based programming language i am working on
 ```
  "Hello, World" .       // string printing
  "nope"         print   // prints but no newline
- -69            .       # int printing
+ -69            .       // int printing
  stack                  // prints the stack
 ```
 
