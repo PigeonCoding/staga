@@ -29,29 +29,53 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
     case n_instr.add:
       val := pop(&stack)
       switch _ in val {
+      case f64:
+        append(&stack, val.(f64) + pop(&stack).(f64))
       case i64:
         append(&stack, val.(i64) + pop(&stack).(i64))
       case string:
         val2 := pop(&stack)
-        // print_str handles the string to start with " and end with "
         res := strings.concatenate(
-          {val2.(string)[0:len(val2.(string)) - 1], val.(string)[1:len(val.(string))]},
+          {val2.(string), val.(string)},
         )
         append(&stack, res)
       }
 
     case n_instr.minus:
-      val := pop(&stack).(i64)
-      val2 := pop(&stack).(i64)
-      append(&stack, val2 - val)
+      val := pop(&stack)
+      switch _ in val {
+      case f64:
+        append(&stack, pop(&stack).(f64) - val.(f64))
+      case i64:
+        append(&stack, pop(&stack).(i64) - val.(i64))
+      case string:
+        assert(false, "string minus does not exist")
+      }
 
     case n_instr.mult:
-      append(&stack, pop(&stack).(i64) * pop(&stack).(i64))
+      val := pop(&stack)
+      switch _ in val {
+      case f64:
+        append(&stack, pop(&stack).(f64) * val.(f64))
+      case i64:
+        append(&stack, pop(&stack).(i64) * val.(i64))
+      case string:
+        assert(false, "string mult does not exist")
+      }
 
     case n_instr.div:
-      val := pop(&stack).(i64)
-      val2 := pop(&stack).(i64)
-      append(&stack, val2 / val)
+      val := pop(&stack)
+
+      switch _ in val {
+      case f64:
+        append(&stack, pop(&stack).(f64) * val.(f64))
+      case i64:
+        append(&stack, pop(&stack).(i64) * val.(i64))
+      case string:
+        assert(false, "string mult does not exist")
+      }
+
+
     case n_instr.eq:
       append(&stack, cast(i64)(pop(&stack).(i64) == pop(&stack).(i64)))
 
@@ -121,6 +145,8 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       val := pop(&stack)
 
       switch _ in val {
+      case f64:
+        fmt.printfln("%f", val.(f64))
       case i64:
         fmt.println(val.(i64))
       case string:
@@ -132,6 +158,8 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       val := pop(&stack)
 
       switch _ in val {
+      case f64:
+        fmt.printf("%f", val.(f64))
       case i64:
         fmt.print(val.(i64))
       case string:

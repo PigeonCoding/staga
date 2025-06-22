@@ -73,6 +73,14 @@ parse_instrs_intern :: proc(
       }
       stack_len += 1
 
+    case .floatlit:
+      st = {
+        instr_id  = n_instr.push,
+        data      = l.token.float_lit,
+        data_type = n_type.nfloat,
+      }
+      stack_len += 1
+
     case .minus_sign:
       // '-'
       st = {

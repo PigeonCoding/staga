@@ -8,6 +8,7 @@ stack_struct :: struct {
 str_int :: union {
   string,
   i64,
+  f64
 }
 
 n_type_names := []string {
@@ -25,6 +26,7 @@ n_type :: enum {
   nstring,
   nint,
   ops,
+  nfloat,
   // fn,
   cjmp,
   mem,
