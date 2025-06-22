@@ -75,21 +75,62 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
         assert(false, "string mult does not exist")
       }
 
-
     case n_instr.eq:
-      append(&stack, cast(i64)(pop(&stack).(i64) == pop(&stack).(i64)))
+      val := pop(&stack)
+
+      switch _ in val {
+      case f64:
+        append(&stack, i64(pop(&stack).(f64) == val.(f64)))
+      case i64:
+        append(&stack, i64(pop(&stack).(i64) == val.(i64)))
+      case string:
+        assert(false, "string mult does not exist")
+      }
 
     case n_instr.gr:
-      append(&stack, cast(i64)(pop(&stack).(i64) < pop(&stack).(i64)))
+      val := pop(&stack)
+      switch _ in val {
+      case f64:
+        append(&stack, i64(pop(&stack).(f64) < val.(f64)))
+      case i64:
+        append(&stack, i64(pop(&stack).(i64) < val.(i64)))
+      case string:
+        assert(false, "string mult does not exist")
+      }
 
     case n_instr.less:
-      append(&stack, cast(i64)(pop(&stack).(i64) > pop(&stack).(i64)))
+      val := pop(&stack)
+      switch _ in val {
+      case f64:
+        append(&stack, i64(pop(&stack).(f64) > val.(f64)))
+      case i64:
+        append(&stack, i64(pop(&stack).(i64) > val.(i64)))
+      case string:
+        assert(false, "string mult does not exist")
+      }
+
 
     case n_instr.gre:
-      append(&stack, cast(i64)(pop(&stack).(i64) <= pop(&stack).(i64)))
+      val := pop(&stack)
+      switch _ in val {
+      case f64:
+        append(&stack, i64(pop(&stack).(f64) <= val.(f64)))
+      case i64:
+        append(&stack, i64(pop(&stack).(i64) <= val.(i64)))
+      case string:
+        assert(false, "string mult does not exist")
+      }
 
     case n_instr.lesse:
-      append(&stack, cast(i64)(pop(&stack).(i64) >= pop(&stack).(i64)))
+      val := pop(&stack)
+      switch _ in val {
+      case f64:
+        append(&stack, i64(pop(&stack).(f64) >= val.(f64)))
+      case i64:
+        append(&stack, i64(pop(&stack).(i64) >= val.(i64)))
+      case string:
+        assert(false, "string mult does not exist")
+      }
 
     case n_instr.nif:
       if pop(&stack).(i64) == 0 {
@@ -105,7 +146,6 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       if pop(&stack).(i64) == 0 do i = instr_list[i].data.(i64)
 
     case n_instr.nend:
-      // fmt.println(instr_list[i])
       i = instr_list[i].data.(i64)
 
     case n_instr.nmems:
@@ -133,7 +173,7 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       fmt.println()
 
     case n_instr.int3:
-      // TODO: maybe do something better ?
+      // TODO: maybe do something better ? or remove it entirely
       buf: [1]byte
       _, err := os.read(os.stdin, buf[:])
       if err != nil {
