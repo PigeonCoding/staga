@@ -1,7 +1,6 @@
 // v0.1 from https://github.com/PigeonCoding/lexer.odin/tree/master
 package staga
 
-import "core:fmt"
 import "core:os"
 import "core:slice"
 import "core:strconv"

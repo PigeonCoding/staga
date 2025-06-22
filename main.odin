@@ -2,7 +2,6 @@ package staga
 
 import "core:fmt"
 import "core:os"
-import "core:os/os2"
 import "core:strings"
 import fl "thirdparty/flag"
 

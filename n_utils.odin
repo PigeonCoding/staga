@@ -46,12 +46,3 @@ is_operand :: proc(c: byte) -> bool {
     c == '>' \
   )
 }
-
-print_tokens :: proc(tokens: []token) {
-  assert(false, "TODO: print_token to implement")
-  // for t in tokens {
-  //   if t.content == "\n" || t.content == " " || t.skip == true do continue
-  //   fmt.printfln("{}:{}:{} {}", t.file, t.row, t.col, t.content)
-  // }
-}
-

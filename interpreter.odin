@@ -2,27 +2,12 @@ package staga
 
 import "core:fmt"
 import "core:os"
-import "core:slice"
-import "core:strconv"
 import "core:strings"
 
 MEM_SIZE :: 1024 * 4
 
 stack := [dynamic]str_int{}
 mem := [MEM_SIZE]str_int{}
-
-// // maybe move most of the instructions handling here
-// // it would be more ergonomic
-// custom_instrs := [?]custom_instr_t {
-//   {name = "split", function = proc(instr_list: []instr, fn_list: []fn_def) {
-//       spliter := pop(&stack).(string)
-//       str := pop(&stack).(string)
-//       for s in strings.split(str, spliter[1:len(spliter) - 1]) {
-//         append(&stack, s)
-//       }
-//     }},
-// }
-
 
 n := 0
 
@@ -152,29 +137,15 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       case string:
         print_str(val.(string))
       }
-    // case n_instr.additional:
-    //   for ad in custom_instrs {
-    //     if ad.name == ins.data.(string) {
-    //       ad.function(&stack, mem[:], instr_list, fn_list)
-    //     }
-    //   }
+
     case n_instr.jmp:
       for m in fn_list {
         if m.name == ins.data.(string) {
           interpret_instrs(m.content, fn_list)
         }
       }
-    case:
-      // yes := false
-      // for cu in custom_instrs {
-      //   if cu.name == ins.name {
-      //     fmt.println("found")
-      //     cu.function(instr_list, fn_list)
-      //     fmt.println(stack)
-      //     yes = true
-      //   }
-      // }
 
+    case:
       a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
     i += 1
