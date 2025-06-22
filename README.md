@@ -9,10 +9,12 @@ a stack-based programming language i am working on
 ## "Features":
 ### printing
 ```
- "Hello, World" .       // string printing
- "nope"         print   // prints but no newline
- -69            .       // int printing
- stack                  // prints the stack
+"Hello, World" .           // string printing
+69             .           // int printing
+0xFF           .           // hex printing (also supports binary and octal)
+-69            .           // int printing
+-0.69          .           // float printing
+1 2 3 stack    pop pop pop // prints the stack
 ```
 
 ### arithmetics
