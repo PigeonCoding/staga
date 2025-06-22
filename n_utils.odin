@@ -24,38 +24,15 @@ a_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {
   }
 }
 
-read_file :: proc(file: string) -> (res: string, err: os.Error) {
-  file, ferr := os.open(file)
-  if ferr != nil {
-    return "", ferr
-  }
-  defer os.close(file)
-
-  buff_size, _ := os.file_size(file)
-  buf := make([]byte, buff_size)
-  for {
-    n, _ := os.read(file, buf)
-    if n == 0 do break
+check_type :: proc(l: ^lexer, expected: token_id) -> bool {
+  if l.token.type != expected {
+    fmt.eprintfln("%s:%d:%d expected {} but got {}", l.file, l.row, l.col, expected, l.token.type)
+    // os.exit(1)
   }
 
-  return string(buf), nil
+  return l.token.type == expected
 }
 
-is_whitespace :: proc(c: byte) -> bool {
-  return c == ' ' || c == '\t' || c == '\r'
-}
-
-is_numerical :: proc(c: byte) -> bool {
-  return c >= '0' && c <= '9'
-}
-
-is_alphabetical :: proc(c: byte) -> bool {
-  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-}
-
-is_alphanumerical :: proc(c: byte) -> bool {
-  return is_numerical(c) || is_alphabetical(c)
-}
 
 is_operand :: proc(c: byte) -> bool {
   return(
@@ -70,10 +47,11 @@ is_operand :: proc(c: byte) -> bool {
   )
 }
 
-print_tokens :: proc(tokens: []Token) {
-  for t in tokens {
-    if t.content == "\n" || t.content == " " || t.skip == true do continue
-    fmt.printfln("{}:{}:{} {}", t.file, t.row, t.col, t.content)
-  }
+print_tokens :: proc(tokens: []token) {
+  assert(false, "TODO: print_token to implement")
+  // for t in tokens {
+  //   if t.content == "\n" || t.content == " " || t.skip == true do continue
+  //   fmt.printfln("{}:{}:{} {}", t.file, t.row, t.col, t.content)
+  // }
 }
 

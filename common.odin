@@ -7,13 +7,7 @@ stack_struct :: struct {
 
 str_int :: union {
   string,
-  int,
-}
-
-custom_instr_t :: struct {
-  name:         string,
-  stack_change: int,
-  function:     proc(instr_list: []instr, fn_list: []fn_def),
+  i64,
 }
 
 n_type_names := []string {

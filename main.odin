@@ -34,23 +34,16 @@ main :: proc() {
 
   fmt.assertf(len(flags.remaining) == 1, "we currently only support one file")
   file := flags.remaining[0]
+  if !strings.ends_with(file, ".stg") {
+    fmt.eprintln("we only support .stg files")
+  }
 
-  token_list := [dynamic]Token{}
-  defer delete(token_list)
-  get_tokens(file, &token_list)
-
-  index := 0
   parse := [dynamic]instr{}
   defer delete(parse)
 
-  ins := 0
+  // ins := 0
   mac := [dynamic]fn_def{}
-  parse_instrs(&index, token_list[:], &parse, &ins, &mac)
+  parse_instrs(&parse, &mac, []string{file})
 
-  if strings.ends_with(file, ".stg") {
-    interpret_instrs(parse[:], mac[:])
-  } else {
-    fmt.eprintln("unknown file type for file", file)
-  }
-
+  interpret_instrs(parse[:], mac[:])
 }

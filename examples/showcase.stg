@@ -1,7 +1,7 @@
 "-- printing:" .
 "Hello, World" .           // string printing
-69             .           # int printing
--69            .           # int printing
+69             .           // int printing
+-69            .           // int printing
 1 2 3 stack    pop pop pop // prints the stack
 
 "\n-- arithmetics:" .
@@ -23,7 +23,7 @@
 "\n-- while:" .
 0 while dup 20 < do dup . 1 + end pop // remove the iterator after a loop
 
-"\n-- stack manipulation:" . 
+"\n-- stack manipulation:" .
 1 2 3 2 swap . . .
 69 dup print " " print .
 
@@ -33,7 +33,7 @@
 
 "\n-- functions:" .
 fn test1_ // start of a function names test1_
-  69 dup . 
+  69 dup .
   351 + .
 fend // end of the function
 jmp test1_ // jumping to the macro

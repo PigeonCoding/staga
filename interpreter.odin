@@ -11,17 +11,17 @@ MEM_SIZE :: 1024 * 4
 stack := [dynamic]str_int{}
 mem := [MEM_SIZE]str_int{}
 
-// maybe move most of the instructions handling here
-// it would be more ergonomic
-custom_instrs := [?]custom_instr_t {
-  {name = "split", function = proc(instr_list: []instr, fn_list: []fn_def) {
-      spliter := pop(&stack).(string)
-      str := pop(&stack).(string)
-      for s in strings.split(str, spliter[1:len(spliter) - 1]) {
-        append(&stack, s)
-      }
-    }},
-}
+// // maybe move most of the instructions handling here
+// // it would be more ergonomic
+// custom_instrs := [?]custom_instr_t {
+//   {name = "split", function = proc(instr_list: []instr, fn_list: []fn_def) {
+//       spliter := pop(&stack).(string)
+//       str := pop(&stack).(string)
+//       for s in strings.split(str, spliter[1:len(spliter) - 1]) {
+//         append(&stack, s)
+//       }
+//     }},
+// }
 
 
 n := 0
@@ -29,8 +29,8 @@ n := 0
 interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
   n += 1
   a_assert(true, n < 2000, "too much recusion try less")
-  i := 0
-  for i < len(instr_list) {
+  i : i64 = 0
+  for i < auto_cast len(instr_list) {
     ins := instr_list[i]
     #partial switch ins.instr_id {
     case n_instr.push:
@@ -44,8 +44,8 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
     case n_instr.add:
       val := pop(&stack)
       switch _ in val {
-      case int:
-        append(&stack, val.(int) + pop(&stack).(int))
+      case i64:
+        append(&stack, val.(i64) + pop(&stack).(i64))
       case string:
         val2 := pop(&stack)
         // print_str handles the string to start with " and end with "
@@ -56,60 +56,61 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       }
 
     case n_instr.minus:
-      val := pop(&stack).(int)
-      val2 := pop(&stack).(int)
+      val := pop(&stack).(i64)
+      val2 := pop(&stack).(i64)
       append(&stack, val2 - val)
 
     case n_instr.mult:
-      append(&stack, pop(&stack).(int) * pop(&stack).(int))
+      append(&stack, pop(&stack).(i64) * pop(&stack).(i64))
 
     case n_instr.div:
-      val := pop(&stack).(int)
-      val2 := pop(&stack).(int)
+      val := pop(&stack).(i64)
+      val2 := pop(&stack).(i64)
       append(&stack, val2 / val)
     case n_instr.eq:
-      append(&stack, cast(int)(pop(&stack).(int) == pop(&stack).(int)))
+      append(&stack, cast(i64)(pop(&stack).(i64) == pop(&stack).(i64)))
 
     case n_instr.gr:
-      append(&stack, cast(int)(pop(&stack).(int) < pop(&stack).(int)))
+      append(&stack, cast(i64)(pop(&stack).(i64) < pop(&stack).(i64)))
 
     case n_instr.less:
-      append(&stack, cast(int)(pop(&stack).(int) > pop(&stack).(int)))
+      append(&stack, cast(i64)(pop(&stack).(i64) > pop(&stack).(i64)))
 
     case n_instr.gre:
-      append(&stack, cast(int)(pop(&stack).(int) <= pop(&stack).(int)))
+      append(&stack, cast(i64)(pop(&stack).(i64) <= pop(&stack).(i64)))
 
     case n_instr.lesse:
-      append(&stack, cast(int)(pop(&stack).(int) >= pop(&stack).(int)))
+      append(&stack, cast(i64)(pop(&stack).(i64) >= pop(&stack).(i64)))
 
     case n_instr.nif:
-      if pop(&stack).(int) == 0 {
-        i = instr_list[i].data.(int)
+      if pop(&stack).(i64) == 0 {
+        i = instr_list[i].data.(i64)
       }
 
     case n_instr.nelse:
-      i = instr_list[i].data.(int)
+      i = instr_list[i].data.(i64)
 
     case n_instr.ndone, n_instr.none, n_instr.nwhile:
 
     case n_instr.ndo:
-      if pop(&stack).(int) == 0 do i = instr_list[i].data.(int)
+      if pop(&stack).(i64) == 0 do i = instr_list[i].data.(i64)
 
     case n_instr.nend:
-      i = instr_list[i].data.(int)
+      // fmt.println(instr_list[i])
+      i = instr_list[i].data.(i64)
 
     case n_instr.nmems:
-      mem[pop(&stack).(int)] = pop(&stack)
+      mem[pop(&stack).(i64)] = pop(&stack)
 
     case n_instr.nmeml:
-      append(&stack, mem[pop(&stack).(int)])
+      append(&stack, mem[pop(&stack).(i64)])
 
     case n_instr.swap:
-      swap_num := pop(&stack).(int)
+      swap_num := pop(&stack).(i64)
       if swap_num > 1 {
         tmp := stack[len(&stack) - 1]
-        stack[len(&stack) - 1] = stack[len(&stack) - swap_num]
-        stack[len(&stack) - swap_num] = tmp
+        stack[len(&stack) - 1] = stack[len(&stack) - auto_cast swap_num]
+        stack[len(&stack) - auto_cast swap_num] = tmp
       }
 
     case n_instr.pop:
@@ -135,8 +136,8 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       val := pop(&stack)
 
       switch _ in val {
-      case int:
-        fmt.println(val.(int))
+      case i64:
+        fmt.println(val.(i64))
       case string:
         print_str(val.(string))
         fmt.println()
@@ -146,8 +147,8 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       val := pop(&stack)
 
       switch _ in val {
-      case int:
-        fmt.print(val.(int))
+      case i64:
+        fmt.print(val.(i64))
       case string:
         print_str(val.(string))
       }
@@ -164,17 +165,17 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
         }
       }
     case:
-      yes := false
-      for cu in custom_instrs {
-        if cu.name == ins.name {
-          fmt.println("found")
-          cu.function(instr_list, fn_list)
-          fmt.println(stack)
-          yes = true
-        }
-      }
+      // yes := false
+      // for cu in custom_instrs {
+      //   if cu.name == ins.name {
+      //     fmt.println("found")
+      //     cu.function(instr_list, fn_list)
+      //     fmt.println(stack)
+      //     yes = true
+      //   }
+      // }
 
-      a_assert(true, yes, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
+      a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
     }
     i += 1
 

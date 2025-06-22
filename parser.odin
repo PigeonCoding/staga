@@ -11,426 +11,356 @@ fn_def :: struct {
   name:    string,
   content: []instr,
 }
-parse_instrs :: proc(
-  index: ^int,
-  token_list: []Token,
+
+parse_instrs_intern :: proc(
   instrs: ^[dynamic]instr,
-  current_instr: ^int,
   fn_list: ^[dynamic]fn_def,
-  delimiter: string = " ",
+  current_instr: ^uint,
+  file: string,
+  lex: ^lexer = nil,
+  delimiter: string = "",
   is_fn: bool = false,
-) -> int {
-  stack_len := 0
-  base := len(instrs)
-
-  ins_cnt := 0
-
-  tmp_macro := [dynamic]instr{}
-  defer delete(tmp_macro)
+) {
+  ins_cnt: int = 0
 
   if_stack := [dynamic]int{}
   defer delete(if_stack)
   while_stack := [dynamic]int{}
   defer delete(while_stack)
 
-  for index^ < len(token_list) {
+  stack_len: int = 0
+  l: lexer
 
-    num := false
-    #partial switch _ in token_list[index^].content {
-    case int:
-      num = true
-    }
-    if !num && delimiter != " " && token_list[index^].content.(string) == delimiter do break
+  if lex == nil {
+    l = init_lexer(file)
+    get_token(&l)
+  } else {
+    get_token(lex)
+    l.file = lex.file
+  }
 
 
-    st: instr = {
-      data = "",
-    }
-
-    if !num &&
-       (token_list[index^].content.(string) == "\n" ||
-           token_list[index^].content.(string) == " " ||
-           token_list[index^].content.(string) == "\r" ||
-           token_list[index^].content.(string) == "\t" ||
-           token_list[index^].content.(string) == "") {
-      index^ += 1
-      continue
+  for l.token.type != .either_end_or_failure {
+    if lex != nil {
+      l.row = lex.row
+      l.col = lex.col
+      l.file = lex.file
+      l.token = lex.token
     }
 
-    skip := false
+    if l.token.str == delimiter && delimiter != "" do break
 
-    if !num && token_list[index^].content.(string) == "if" {
-      st = {
-        instr_id  = n_instr.nif,
-        data_type = n_type.cjmp,
-      }
-
-      stack_len -= 1
-
-      if is_fn do append(&if_stack, ins_cnt)
-      else do append(&if_stack, current_instr^)
-
-    } else if num {
+    st: instr
+    #partial switch l.token.type {
+    case .dqstring:
       st = {
         instr_id  = n_instr.push,
-        data      = token_list[index^].content.(int),
-        data_type = n_type.nint,
+        data      = l.token.str,
+        data_type = n_type.nstring,
       }
       stack_len += 1
-    } else if token_list[index^].content.(string) == "else" {
-      st = {
-        instr_id  = n_instr.nelse,
-        data_type = n_type.cjmp,
-      }
 
-      if is_fn do instrs[pop(&if_stack)].data = ins_cnt
-      else do instrs[pop(&if_stack)].data = current_instr^
-
-      if is_fn do append(&if_stack, ins_cnt)
-      else do append(&if_stack, current_instr^)
-
-    } else if token_list[index^].content.(string) == "done" {
-      st = {
-        instr_id  = n_instr.ndone,
-        data_type = n_type.cjmp,
-      }
-
-      if is_fn do instrs[pop(&if_stack)].data = ins_cnt
-      else do instrs[pop(&if_stack)].data = current_instr^
-
-    } else if token_list[index^].content.(string) == "dup" {
-      st = {
-        instr_id  = n_instr.dup,
-        data_type = n_type.ops,
-      }
-      stack_len += 1
-    } else if token_list[index^].content.(string) == "while" {
-      st = {
-        instr_id  = n_instr.nwhile,
-        data_type = n_type.cjmp,
-      }
-      append(&while_stack, stack_len)
-      append(&while_stack, current_instr^)
-    } else if token_list[index^].content.(string) == "do" {
-      st = {
-        instr_id  = n_instr.ndo,
-        data_type = n_type.cjmp,
-      }
-      append(&while_stack, current_instr^)
-      stack_len -= 1
-
-    } else if token_list[index^].content.(string) == "end" {
-      st = {
-        instr_id  = n_instr.nend,
-        data_type = n_type.cjmp,
-      }
-      do_i := pop(&while_stack)
-      while_i := pop(&while_stack)
-      instrs[do_i].data = current_instr^
-      old_stack := pop(&while_stack)
-
-      // TODO: check for stack size before and after loop but with macros
-      // cause for now they are broken
-      st.data = while_i
-      instrs[do_i].data = current_instr^
-    } else if token_list[index^].content.(string) == "mems" {
-      st = {
-        instr_id  = n_instr.nmems,
-        data_type = n_type.mem,
-      }
-      stack_len -= 2
-    } else if token_list[index^].content.(string) == "meml" {
-      st = {
-        instr_id  = n_instr.nmeml,
-        data_type = n_type.mem,
-      }
-    } else if token_list[index^].content.(string) == "swap" {
-      st = {
-        instr_id  = n_instr.swap,
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-    } else if token_list[index^].content.(string) == "fn" {
-      // TODO: nested macros are not supported yet
-      index^ += 1
-      clear(&tmp_macro)
-
-      mac := fn_def {
-        name = token_list[index^].content.(string),
-      }
-      index^ += 1
-
-      parse_instrs(index, token_list, &tmp_macro, current_instr, fn_list, "fend", true)
-      mac.content = slice.clone(tmp_macro[:])
-
-      index^ += 1
-      append(fn_list, mac)
-      continue
-
-    } else if !num && token_list[index^].content.(string) == "pop" {
-      st = {
-        instr_id  = n_instr.pop,
-        data      = "",
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-    } else if !num && token_list[index^].content.(string) == "stack" {
-      st = {
-        instr_id  = n_instr.stack,
-        data      = "",
-        data_type = n_type.mem,
-      }
-
-    } else if !num && token_list[index^].content.(string) == "int3" {
-      st = {
-        instr_id  = n_instr.int3,
-        data      = "",
-        data_type = n_type.ops,
-      }
-    } else if !num && token_list[index^].content.(string) == "." {
+    case .dot:
       st = {
         instr_id  = n_instr.dot,
         data      = "",
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if !num && token_list[index^].content.(string) == "print" {
+
+    case .intlit:
       st = {
-        instr_id  = n_instr.print,
-        data      = "",
+        instr_id  = n_instr.push,
+        data      = l.token.int_lit,
+        data_type = n_type.nint,
+      }
+      stack_len += 1
+
+    case .minus_sign:
+      // '-'
+      st = {
+        instr_id  = n_instr.minus,
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if token_list[index^].content == ">" {
+
+    case .plus_sign:
+      // '+'
       st = {
-        instr_id  = n_instr.gr,
+        instr_id  = n_instr.add,
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if token_list[index^].content == "<" {
+
+    case .asterisk:
+      // '*'
+      st = {
+        instr_id  = n_instr.mult,
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
+
+    case .forward_slash:
+      // '/'
+      st = {
+        instr_id  = n_instr.div,
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
+
+    case .less_than_sign:
+      // '<'
       st = {
         instr_id  = n_instr.less,
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if token_list[index^].content == ">=" {
+
+    case .greater_than_sign:
+      // '>'
       st = {
-        instr_id  = n_instr.gre,
+        instr_id  = n_instr.gr,
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if token_list[index^].content == "<=" {
+
+    case .equals_sign:
+      // '='
       st = {
-        instr_id  = n_instr.lesse,
+        instr_id  = n_instr.eq,
         data_type = n_type.ops,
       }
       stack_len -= 1
-    } else if token_list[index^].content == "load" {
 
-      index^ += 1
-
-      a_assert(
-        true,
-        token_list[index^].content.(string) != "\"\"",
-        "load path is empty ",
-        token_list[index^].file,
-      )
-
-      base_path := ""
-
-      if runtime.Odin_OS_Type.Windows == os.OS do base_path = strings.trim_right_proc(token_list[index^].file, proc(t: rune) -> bool {
-        return t != '\\'
-      })
-      else do base_path = strings.trim_right_proc(token_list[index^].file, proc(t: rune) -> bool {
-        return t != '/'
-      })
-      base_path = strings.concatenate(
-        {
-          base_path,
-          token_list[index^].content.(string)[1:len(token_list[index^].content.(string)) - 1],
-          ".stg",
-        },
-      )
-
-      // fmt.println(base_path)
-      // assert(false)
-
-
-      n_token_list := [dynamic]Token{}
-      // defer delete(n_token_list)
-      get_tokens(base_path, &n_token_list)
-      // print_tokens(n_token_list[:])
-
-      ind := 0
-      parse_instrs(&ind, n_token_list[:], instrs, current_instr, fn_list)
-
-      index^ += 1
-      continue
-
-
-    } else if token_list[index^].content.(string) == "jmp" {
-      index^ += 1
-      st = {
-        instr_id = n_instr.jmp,
-        data     = token_list[index^].content.(string),
-      }
-
-    } else {
-      switch token_list[index^].content.(string)[0] {
-      case '"':
+    case .id:
+      switch l.token.str {
+      // keywords
+      case "stack":
         st = {
-          instr_id  = n_instr.push,
-          data      = token_list[index^].content,
-          data_type = n_type.nstring,
+          instr_id  = n_instr.stack,
+          data      = "",
+          data_type = n_type.mem,
+        }
+
+      case "pop":
+        st = {
+          instr_id  = n_instr.pop,
+          data      = "",
+          data_type = n_type.ops,
+        }
+        stack_len -= 1
+
+      case "print":
+        st = {
+          instr_id  = n_instr.print,
+          data      = "",
+          data_type = n_type.ops,
+        }
+        stack_len -= 1
+
+      case "if":
+        st = {
+          instr_id  = n_instr.nif,
+          data_type = n_type.cjmp,
+        }
+        stack_len -= 1
+        if is_fn do append(&if_stack, ins_cnt)
+        else do append(&if_stack, auto_cast current_instr^)
+
+      case "else":
+        st = {
+          instr_id  = n_instr.nelse,
+          data_type = n_type.cjmp,
+        }
+
+        if is_fn do instrs[pop(&if_stack)].data = cast(i64)ins_cnt
+        else do instrs[pop(&if_stack)].data = cast(i64)current_instr^
+
+        if is_fn do append(&if_stack, ins_cnt)
+        else do append(&if_stack, auto_cast current_instr^)
+
+      case "done":
+        st = {
+          instr_id  = n_instr.ndone,
+          data_type = n_type.cjmp,
+        }
+
+        if is_fn do instrs[pop(&if_stack)].data = cast(i64)ins_cnt
+        else do instrs[pop(&if_stack)].data = cast(i64)current_instr^
+
+      case "while":
+        st = {
+          instr_id  = n_instr.nwhile,
+          data_type = n_type.cjmp,
+        }
+
+        append(&while_stack, stack_len)
+        // else do append(&while_stack, auto_cast current_instr^)
+        if is_fn do append(&while_stack, ins_cnt)
+        else do append(&while_stack, auto_cast current_instr^)
+
+      case "dup":
+        st = {
+          instr_id  = n_instr.dup,
+          data_type = n_type.ops,
         }
         stack_len += 1
-      case '+':
+
+      case "do":
         st = {
-          instr_id  = n_instr.add,
+          instr_id  = n_instr.ndo,
+          data_type = n_type.cjmp,
+        }
+        if is_fn do append(&while_stack, ins_cnt)
+        else do append(&while_stack, auto_cast current_instr^)
+
+        stack_len -= 1
+
+      case "end":
+        st = {
+          instr_id  = n_instr.nend,
+          data_type = n_type.cjmp,
+        }
+
+        do_i := pop(&while_stack)
+        while_i := pop(&while_stack)
+        instrs[do_i].data = cast(i64)current_instr^
+        _ = pop(&while_stack)
+
+        // TODO: check for stack size before and after loop but with macros
+        // cause for now they are broken
+        st.data = cast(i64)while_i
+        instrs[do_i].data = cast(i64)current_instr^
+
+
+      case "swap":
+        st = {
+          instr_id  = n_instr.swap,
           data_type = n_type.ops,
         }
         stack_len -= 1
-      case '-':
+
+      case "mems":
         st = {
-          instr_id  = n_instr.minus,
-          data_type = n_type.ops,
+          instr_id  = n_instr.nmems,
+          data_type = n_type.mem,
         }
-        stack_len -= 1
-      case '*':
+        stack_len -= 2
+
+      case "meml":
         st = {
-          instr_id  = n_instr.mult,
-          data_type = n_type.ops,
+          instr_id  = n_instr.nmeml,
+          data_type = n_type.mem,
         }
-        stack_len -= 1
-      case '/':
+        stack_len += 1
+
+      case "fn":
+        if lex == nil do get_token(&l)
+        else do get_token(lex)
+
+        if l.token.type == .either_end_or_failure || l.token.type == .null_char {
+          fmt.eprintln("no fn name?")
+          os.exit(1)
+        }
+
+        if lex == nil {
+          if !check_type(&l, .id) do os.exit(1)
+        } else {
+          if !check_type(lex, .id) do os.exit(1)
+        }
+
+        mac := fn_def {
+          name = l.token.str,
+        }
+
+        tmp_macro: [dynamic]instr
+        parse_instrs_intern(&tmp_macro, fn_list, current_instr, file, &l, "fend", true)
+        mac.content = tmp_macro[:]
+        append(fn_list, mac)
+        get_token(&l)
+        continue
+
+      case "jmp":
+        if lex == nil do get_token(&l)
+        else do get_token(lex)
+
+        if lex == nil {
+          if !check_type(&l, .id) do os.exit(1)
+        } else {
+          if !check_type(lex, .id) do os.exit(1)
+        }
+
         st = {
-          instr_id  = n_instr.div,
-          data_type = n_type.ops,
+          instr_id = n_instr.jmp,
+          data     = l.token.str,
         }
-        stack_len -= 1
-      case '=':
-        st = {
-          instr_id  = n_instr.eq,
-          data_type = n_type.ops,
+
+      case "load":
+        if lex == nil do get_token(&l)
+        else do get_token(lex)
+
+        if l.token.type == .either_end_or_failure || l.token.type == .null_char {
+          fmt.eprintln("no import path specified")
+          os.exit(1)
         }
-        stack_len -= 1
+
+        if lex == nil {
+          if !check_type(&l, .dqstring) && !check_type(&l, .sqstring)  do os.exit(1)
+        } else {
+          if !check_type(lex, .dqstring) && !check_type(lex, .sqstring) do os.exit(1)
+        }
+
+        if l.token.str == "" || l.token.str == " " {
+          fmt.eprintfln("%s:%d:%d expected a path but got an empty string", l.file, l.row, l.col)
+          os.exit(1)
+        }
+
+        file_load_path: string
+        if ODIN_OS == .Windows do file_load_path = strings.trim_right_proc(l.file, proc(t: rune) -> bool {
+          return t != '\\'
+        })
+        else do file_load_path = strings.trim_right_proc(l.file, proc(t: rune) -> bool {
+          return t != '/'
+        })
+        file_load_path = strings.concatenate({file_load_path, l.token.str, ".stg"})
+
+        parse_instrs_intern(instrs, fn_list, current_instr, file_load_path, nil)
+
+        if lex == nil do get_token(&l)
+        else do get_token(lex)
+
+        continue
+
       case:
-      // if st.instr_id == n_instr.none {
-      //   f := false
-      //   for macro in fn_list {
-      //     if macro.name == token_list[index^].content {
-      //       // fmt.println(macro.name)
-      //       // nn := current_instr^
-      //       // for ins in macro.content {
-      //       //   k := ins
-      //       //   if k.instr_id == n_instr.nif ||
-      //       //      k.instr_id == n_instr.nelse ||
-      //       //      k.instr_id == n_instr.ndo ||
-      //       //      k.instr_id == n_instr.nend {
-
-      //       //     k.data = k.data.(int) + nn
-      //       //   }
-      //       //   append(instrs, k)
-      //       //   current_instr^ += 1
-      //       // }
-      //       index^ += 1
-      //       f = true
-      //       break
-      //     }
-      //   }
-      //   // if f do continue
-      // }
-
+        fmt.eprintfln("%s:%d:%d unknown id '{}'", l.file, l.row, l.col, l.token.str)
+        os.exit(1)
       }
+
+    case:
+      fmt.eprintf("%s:%d:%d unknown ", l.file, l.row, l.col)
+      fmt.println(l.token.type)
+      os.exit(1)
     }
-
-
-    {
-      str := false
-      #partial switch _ in token_list[index^].content {
-      case string:
-        str = true
-      }
-      if st.instr_id == n_instr.none && str {
-        st.instr_id = n_instr.additional
-        st.name = token_list[index^].content.(string)
-        // os.exit(1)
-      }
-    }
-
-    fmt.assertf(
-      st.instr_id != n_instr.none,
-      "unknown symbol {}:{}:{} '{}'",
-      token_list[index^].file,
-      token_list[index^].row,
-      token_list[index^].col,
-      token_list[index^].content,
-    )
 
     append(instrs, st)
 
+    if l.token.str == delimiter && is_fn do fmt.println("maybe")
+
+    if lex == nil do get_token(&l)
+    else do get_token(lex)
+
     if !is_fn do current_instr^ += 1
     else do ins_cnt += 1
-    index^ += 1
   }
+}
 
-  if_num := 0
-  while_num := 0
-  stack_len = 0
-
-  // TODO: check for stack_len not < 0 after some instrs
-
-  for ins in instrs {
-    #partial switch ins.instr_id {
-    case n_instr.nif:
-      if_num += 1
-    case n_instr.ndone:
-      if_num -= 1
-    case n_instr.ndo:
-      while_num += 1
-    case n_instr.nend:
-      while_num -= 1
-    case n_instr.push, n_instr.dup:
-      stack_len += 1
-    case n_instr.pop,
-         n_instr.add,
-         n_instr.minus,
-         n_instr.mult,
-         n_instr.div,
-         n_instr.swap,
-         n_instr.dot,
-         n_instr.print,
-         n_instr.gr,
-         n_instr.less,
-         n_instr.gre,
-         n_instr.lesse,
-         n_instr.eq:
-      stack_len -= 1
-    case n_instr.nmems:
-      stack_len -= 2
-    case n_instr.none,
-         n_instr.nwhile,
-         n_instr.int3,
-         n_instr.stack,
-         n_instr.nelse,
-         n_instr.nmeml,
-         n_instr.additional,
-         n_instr.jmp:
-      case:
-        l: for n in custom_instrs {
-          if n.name == ins.name {
-            stack_len += n.stack_change
-            break l 
-          }
-        }
-    }
+parse_instrs :: proc(
+  instrs: ^[dynamic]instr,
+  fn_list: ^[dynamic]fn_def,
+  files: []string,
+) {
+  current_instr: uint = 0
+  for file in files {
+    parse_instrs_intern(instrs, fn_list, &current_instr, file, nil)
   }
-
-
-  a_assert(true, if_num == 0, "an if-else block was not closed")
-  a_assert(true, while_num == 0, "an while block was not closed")
-
-  // fmt.println(fn_list)
-
-  return current_instr^
 }
