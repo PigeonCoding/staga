@@ -1,4 +1,4 @@
-// v0.1 from https://github.com/PigeonCoding/lexer.odin/tree/master
+// v0.1.5 from https://github.com/PigeonCoding/lexer.odin
 package staga
 
 import "core:os"
@@ -398,27 +398,62 @@ get_token :: proc(l: ^lexer) {
     l.token.str = string(l.content[s:l.cursor])
     l.cursor += 1
   } else if b, ok := (peek_at_index(l.content, l.cursor + 1)).?; ok == true {
-    // } else if b := ' '; true {
     if l.content[l.cursor] == '=' && b == '=' {
+      l.token.type = .eq
       l.cursor += 2
-    } else if l.content[l.cursor] == '<' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '>' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '+' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '-' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '/' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '*' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '%' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '&' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '|' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '^' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '-' && b == '>' do l.cursor += 2
-    else if l.content[l.cursor] == '=' && b == '>' do l.cursor += 2
-    else if l.content[l.cursor] == '!' && b == '=' do l.cursor += 2
-    else if l.content[l.cursor] == '&' && b == '&' do l.cursor += 2
-    else if l.content[l.cursor] == '|' && b == '|' do l.cursor += 2
-    else if l.content[l.cursor] == '+' && b == '+' do l.cursor += 2
-    else if l.content[l.cursor] == '-' && b == '-' do l.cursor += 2
-    else if l.content[l.cursor] == '<' && b == '<' {
+    } else if l.content[l.cursor] == '<' && b == '=' {
+      l.token.type = .lesseq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '>' && b == '=' {
+      l.token.type = .greatereq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '+' && b == '=' {
+      l.token.type = .pluseq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '-' && b == '=' {
+      l.token.type = .minuseq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '/' && b == '=' {
+      l.token.type = .diveq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '*' && b == '=' {
+      l.token.type = .multeq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '%' && b == '=' {
+      l.token.type = .modeq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '&' && b == '=' {
+      l.token.type = .andeq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '|' && b == '=' {
+      l.token.type = .oreq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '^' && b == '=' {
+      l.token.type = .xoreq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '-' && b == '>' {
+      l.token.type = .arrow
+      l.cursor += 2
+    } else if l.content[l.cursor] == '=' && b == '>' {
+      l.token.type = .eqarrow
+      l.cursor += 2
+    } else if l.content[l.cursor] == '!' && b == '=' {
+      l.token.type = .notq
+      l.cursor += 2
+    } else if l.content[l.cursor] == '&' && b == '&' {
+      l.token.type = .andand
+      l.cursor += 2
+    } else if l.content[l.cursor] == '|' && b == '|' {
+      l.token.type = .oror
+      l.cursor += 2
+    } else if l.content[l.cursor] == '+' && b == '+' {
+      l.token.type = .plusplus
+      l.cursor += 2
+    } else if l.content[l.cursor] == '-' && b == '-' {
+      l.token.type = .minusminus
+      l.cursor += 2
+    } else if l.content[l.cursor] == '<' && b == '<' {
+      l.token.type = .shl
       l.cursor += 1
       a, ok2 := peek_at_index(l.content, l.cursor + 1).?
       if ok2 && a == '=' {
@@ -427,6 +462,7 @@ get_token :: proc(l: ^lexer) {
       }
       l.cursor += 1
     } else if l.content[l.cursor] == '>' && b == '>' {
+      l.token.type = .shr
       l.cursor += 1
       a, ok2 := peek_at_index(l.content, l.cursor + 1).?
       if ok2 && a == '=' {
