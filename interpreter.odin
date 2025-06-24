@@ -91,9 +91,9 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       val := pop(&stack)
       switch _ in val {
       case f64:
-        append(&stack, i64(pop(&stack).(f64) < val.(f64)))
+        append(&stack, i64(pop(&stack).(f64) > val.(f64)))
       case i64:
-        append(&stack, i64(pop(&stack).(i64) < val.(i64)))
+        append(&stack, i64(pop(&stack).(i64) > val.(i64)))
       case string:
         assert(false, "string mult does not exist")
       }
@@ -102,9 +102,9 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       val := pop(&stack)
       switch _ in val {
       case f64:
-        append(&stack, i64(pop(&stack).(f64) > val.(f64)))
+        append(&stack, i64(pop(&stack).(f64) < val.(f64)))
       case i64:
-        append(&stack, i64(pop(&stack).(i64) > val.(i64)))
+        append(&stack, i64(pop(&stack).(i64) < val.(i64)))
       case string:
         assert(false, "string mult does not exist")
       }
@@ -114,9 +114,9 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       val := pop(&stack)
       switch _ in val {
       case f64:
-        append(&stack, i64(pop(&stack).(f64) <= val.(f64)))
+        append(&stack, i64(pop(&stack).(f64) >= val.(f64)))
       case i64:
-        append(&stack, i64(pop(&stack).(i64) <= val.(i64)))
+        append(&stack, i64(pop(&stack).(i64) >= val.(i64)))
       case string:
         assert(false, "string mult does not exist")
       }
@@ -125,9 +125,9 @@ interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
       val := pop(&stack)
       switch _ in val {
       case f64:
-        append(&stack, i64(pop(&stack).(f64) >= val.(f64)))
+        append(&stack, i64(pop(&stack).(f64) <= val.(f64)))
       case i64:
-        append(&stack, i64(pop(&stack).(i64) >= val.(i64)))
+        append(&stack, i64(pop(&stack).(i64) <= val.(i64)))
       case string:
         assert(false, "string mult does not exist")
       }

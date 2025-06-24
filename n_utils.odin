@@ -26,7 +26,7 @@ a_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {
 
 check_type :: proc(l: ^lexer, expected: token_id) -> bool {
   if l.token.type != expected {
-    fmt.eprintfln("%s:%d:%d expected {} but got {}", l.file, l.row, l.col, expected, l.token.type)
+    fmt.eprintfln("%s:%d:%d expected {} but got {}", l.file, l.row + 1, l.col + 1, expected, l.token.type)
     // os.exit(1)
   }
 

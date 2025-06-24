@@ -137,6 +137,21 @@ parse_instrs_intern :: proc(
       }
       stack_len -= 1
 
+    case .lesseq:
+      st = {
+        instr_id  = n_instr.lesse,
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
+
+    case .greatereq:
+      st = {
+        instr_id  = n_instr.gre,
+        data_type = n_type.ops,
+      }
+      stack_len -= 1
+
+
     case .id:
       switch l.token.str {
       // keywords
@@ -237,7 +252,6 @@ parse_instrs_intern :: proc(
         st.data = cast(i64)while_i
         instrs[do_i].data = cast(i64)current_instr^
 
-
       case "swap":
         st = {
           instr_id  = n_instr.swap,
@@ -310,7 +324,7 @@ parse_instrs_intern :: proc(
         }
 
         if lex == nil {
-          if !check_type(&l, .dqstring) && !check_type(&l, .sqstring)  do os.exit(1)
+          if !check_type(&l, .dqstring) && !check_type(&l, .sqstring) do os.exit(1)
         } else {
           if !check_type(lex, .dqstring) && !check_type(lex, .sqstring) do os.exit(1)
         }
@@ -359,11 +373,7 @@ parse_instrs_intern :: proc(
   }
 }
 
-parse_instrs :: proc(
-  instrs: ^[dynamic]instr,
-  fn_list: ^[dynamic]fn_def,
-  files: []string,
-) {
+parse_instrs :: proc(instrs: ^[dynamic]instr, fn_list: ^[dynamic]fn_def, files: []string) {
   current_instr: uint = 0
   for file in files {
     parse_instrs_intern(instrs, fn_list, &current_instr, file, nil)

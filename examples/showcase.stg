@@ -24,7 +24,7 @@
 69 if "value isn't zero" else "it is zero" done .
 
 "\n-- while:" .
-0 while dup 20 < do dup . 1 + end pop // remove the iterator after a loop
+0 while dup 20 <= do dup . 1 + end pop // remove the iterator after a loop
 
 "\n-- stack manipulation:" .
 1 2 3 2 swap . . .
