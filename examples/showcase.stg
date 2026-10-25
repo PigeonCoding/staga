@@ -34,12 +34,29 @@
 "this was stores in mem no 1 and loaded from memory" 1 mems
 1 meml .
 
-"\n-- functions:" .
-fn test1_ // start of a function names test1_
+"\n-- macros (inline, share the caller's stack):" .
+macro test1_ // start of a macro named test1_
   69 dup .
   351 + .
-fend // end of the function
+fend // end of the macro
 jmp test1_ // jumping to the macro
+
+"\n-- functions (own call frame, arguments and return values):" .
+fn add 2 1
+  + ret
+fend
+2 3 call add "2 + 3 = " print .
+
+fn fib 1 1
+  dup 2 < if
+    1 ret
+  done
+  dup 1 - call fib
+  2 swap 2 - call fib
+  +
+  ret
+fend
+10 call fib "fib(10) = " print .
 
 "\n-- file loading:" .
 load "foo"

@@ -1,5 +1,5 @@
 
-fn case1
+macro case1
   0 2 swap 
   dup meml             0 = if
     dup 1 + meml       0 = if
@@ -11,7 +11,7 @@ fn case1
   done
 fend
 
-fn case2
+macro case2
   0 2 swap 
   dup meml             0 = if
     dup 1 + meml       0 = if
@@ -23,7 +23,7 @@ fn case2
   done
 fend
 
-fn case3
+macro case3
   0 2 swap 
   dup meml             0 = if
     dup 1 + meml       1 = if
@@ -35,7 +35,7 @@ fn case3
   done
 fend
 
-fn case4
+macro case4
   0 2 swap 
   dup meml             0 = if
     dup 1 + meml       1 = if
@@ -47,7 +47,7 @@ fn case4
   done
 fend
 
-fn case5
+macro case5
   0 2 swap 
   dup meml             1 = if
     dup 1 + meml       0 = if
@@ -59,7 +59,7 @@ fn case5
   done
 fend
 
-fn case6
+macro case6
   0 2 swap 
   dup meml             1 = if
     dup 1 + meml       0 = if
@@ -71,7 +71,7 @@ fn case6
   done
 fend
 
-fn case7
+macro case7
   0 2 swap 
   dup meml             1 = if
     dup 1 + meml       1 = if
@@ -83,7 +83,7 @@ fn case7
   done
 fend
 
-fn case8
+macro case8
   0 2 swap 
   dup meml             1 = if
     dup 1 + meml       1 = if
@@ -97,8 +97,8 @@ fend
 
 // ----------------------------------------------------------------------------------------
 
-fn BOARD_SIZE 100 fend
-fn ITERATIONS 96 fend
+macro BOARD_SIZE 100 fend
+macro ITERATIONS 96 fend
 
 // init the 2 arrays
 0 while dup jmp BOARD_SIZE < do
