@@ -81,13 +81,11 @@ first install [odin](https://odin-lang.org/)
 
 then
 ```console
- ./build.sh debug
- ./build.sh release
-
- build.bat debug
- build.bat release
-
+ odin run builder -- debug
+ odin run builder -- release
+ odin run builder -- all
 ```
+The build is configured in `builder/main.odin` using [build_odin](https://github.com/PigeonCoding/build_odin), which is vendored in `builder/build_odin`.
 ## How to Use
 ### Note:
 run:

@@ -7,3 +7,7 @@ cloc.sh
 testing
 .vscode
 .zed
+
+# odin run builder artifact
+/builder.bin
+/builder.exe
