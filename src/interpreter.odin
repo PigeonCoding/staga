@@ -4,249 +4,389 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
-MEM_SIZE :: 1024 * 4
+stack: [dynamic]str_int
 
-stack := [dynamic]str_int{}
-mem := [MEM_SIZE]str_int{}
+// Memory is a sparse map now, so slots have no arbitrary 4096 limit and a
+// negative index is a normal key instead of an out-of-bounds panic.
+memory: map[i64]str_int
 
-n := 0
+frame_kind :: enum {
+  macro,
+  function,
+}
 
-interpret_instrs :: proc(instr_list: []instr, fn_list: []fn_def) {
-  n += 1
-  a_assert(true, n < 2000, "too much recusion try less")
-  i : i64 = 0
-  for i < auto_cast len(instr_list) {
-    ins := instr_list[i]
-    #partial switch ins.instr_id {
-    case n_instr.push:
+frame :: struct {
+  kind:     frame_kind,
+  code:     []instr,
+  ip:       int,
+  base:     int,
+  name:     string,
+  nreturns: int,
+  loc:      src_loc,
+}
+
+frames: [dynamic]frame
+
+MAX_CALL_DEPTH :: 100_000
+
+pop_value :: proc(ins: instr) -> str_int {
+  if len(stack) == 0 {
+    runtime_fail(ins.loc, "'%s' needs a value, but the stack is empty", n_instr_names[ins.op])
+  }
+  return pop(&stack)
+}
+
+as_int :: proc(ins: instr, v: str_int, what: string) -> i64 {
+  n, ok := v.(i64)
+  if !ok {
+    runtime_fail(ins.loc, "'%s' expected an int, but got a %s", what, value_kind(v))
+  }
+  return n
+}
+
+misuse :: proc(ins: instr, op: string, a: str_int, b: str_int) -> ! {
+  runtime_fail(ins.loc, "cannot use '%s' on %s and %s", op, value_kind(a), value_kind(b))
+}
+
+cmp_int :: proc(ins: instr, op: string, a, b: i64) -> i64 {
+  switch op {
+  case "=":
+    return i64(a == b)
+  case ">":
+    return i64(a > b)
+  case "<":
+    return i64(a < b)
+  case ">=":
+    return i64(a >= b)
+  case "<=":
+    return i64(a <= b)
+  }
+  runtime_fail(ins.loc, "unsupported comparison '%s'", op)
+}
+
+cmp_float :: proc(ins: instr, op: string, a, b: f64) -> i64 {
+  switch op {
+  case "=":
+    return i64(a == b)
+  case ">":
+    return i64(a > b)
+  case "<":
+    return i64(a < b)
+  case ">=":
+    return i64(a >= b)
+  case "<=":
+    return i64(a <= b)
+  }
+  runtime_fail(ins.loc, "unsupported comparison '%s'", op)
+}
+
+cmp_string :: proc(ins: instr, op: string, a, b: string) -> i64 {
+  c := strings.compare(a, b)
+  switch op {
+  case "=":
+    return i64(c == 0)
+  case ">":
+    return i64(c > 0)
+  case "<":
+    return i64(c < 0)
+  case ">=":
+    return i64(c >= 0)
+  case "<=":
+    return i64(c <= 0)
+  }
+  runtime_fail(ins.loc, "unsupported comparison '%s'", op)
+}
+
+arith :: proc(ins: instr, op: string) -> str_int {
+  rhs := pop_value(ins)
+  lhs := pop_value(ins)
+
+  switch r in rhs {
+  case i64:
+    l, ok := lhs.(i64)
+    if !ok do misuse(ins, op, lhs, rhs)
+    if op == "+" do return l + r
+    if op == "-" do return l - r
+    if op == "*" do return l * r
+    if op == "/" {
+      if r == 0 do runtime_fail(ins.loc, "division by zero")
+      return l / r
+    }
+    misuse(ins, op, lhs, rhs)
+
+  case f64:
+    l, ok := lhs.(f64)
+    if !ok do misuse(ins, op, lhs, rhs)
+    if op == "+" do return l + r
+    if op == "-" do return l - r
+    if op == "*" do return l * r
+    if op == "/" {
+      if r == 0 do runtime_fail(ins.loc, "division by zero")
+      return l / r
+    }
+    misuse(ins, op, lhs, rhs)
+
+  case string:
+    if op != "+" do misuse(ins, op, lhs, rhs)
+    l, ok := lhs.(string)
+    if !ok do misuse(ins, op, lhs, rhs)
+    return strings.concatenate({l, r})
+  }
+
+  misuse(ins, op, lhs, rhs)
+}
+
+compare :: proc(ins: instr, op: string) -> i64 {
+  rhs := pop_value(ins)
+  lhs := pop_value(ins)
+
+  switch r in rhs {
+  case i64:
+    l, ok := lhs.(i64)
+    if !ok do misuse(ins, op, lhs, rhs)
+    return cmp_int(ins, op, l, r)
+
+  case f64:
+    l, ok := lhs.(f64)
+    if !ok do misuse(ins, op, lhs, rhs)
+    return cmp_float(ins, op, l, r)
+
+  case string:
+    l, ok := lhs.(string)
+    if !ok do misuse(ins, op, lhs, rhs)
+    return cmp_string(ins, op, l, r)
+  }
+
+  misuse(ins, op, lhs, rhs)
+}
+
+write_value :: proc(ins: instr, v: str_int, newline: bool) {
+  switch x in v {
+  case string:
+    fmt.print(x)
+  case i64:
+    fmt.print(x)
+  case f64:
+    fmt.print(x)
+  case:
+    runtime_fail(ins.loc, "cannot print an unset value")
+  }
+  if newline do fmt.println()
+}
+
+push_frame :: proc(
+  ins: instr,
+  kind: frame_kind,
+  code: []instr,
+  ip, base: int,
+  name: string,
+  nreturns: int,
+  loc: src_loc,
+) {
+  if len(frames) >= MAX_CALL_DEPTH {
+    runtime_fail(
+      ins.loc,
+      "maximum call depth (%d) exceeded; is '%s' recursing forever?",
+      MAX_CALL_DEPTH,
+      name,
+    )
+  }
+  append(
+    &frames,
+    frame {
+      kind = kind,
+      code = code,
+      ip = ip,
+      base = base,
+      name = name,
+      nreturns = nreturns,
+      loc = loc,
+    },
+  )
+}
+
+return_from_function :: proc(ins: instr, fr: frame) {
+  available := len(stack) - fr.base
+  if available < fr.nreturns {
+    runtime_fail(
+      ins.loc,
+      "function '%s' must return %d value(s), but only %d would be on the stack",
+      fr.name,
+      fr.nreturns,
+      available,
+    )
+  }
+  // Keep the top `nreturns` values, drop everything above the frame base.
+  if fr.nreturns > 0 {
+    for k in 0 ..< fr.nreturns {
+      stack[fr.base + k] = stack[len(stack) - fr.nreturns + k]
+    }
+  }
+  resize(&stack, fr.base + fr.nreturns)
+}
+
+run :: proc(p: program) {
+  stack = make([dynamic]str_int)
+  frames = make([dynamic]frame)
+  memory = make(map[i64]str_int)
+
+  defer {
+    delete(stack)
+    delete(frames)
+    delete(memory)
+  }
+
+  code := p.code
+  ip := 0
+
+  for {
+    if ip >= len(code) {
+      if len(frames) == 0 do break
+      fr := frames[len(frames) - 1]
+      if fr.kind == .function {
+        runtime_fail(fr.loc, "function '%s' reached the end of its body without 'ret'", fr.name)
+      }
+      // A macro simply ends; it keeps whatever it left on the shared stack.
+      resize(&frames, len(frames) - 1)
+      code = fr.code
+      ip = fr.ip
+      continue
+    }
+
+    ins := code[ip]
+
+    switch ins.op {
+    case .none:
+    // nothing
+
+    case .push:
       append(&stack, ins.data)
 
-    case n_instr.dup:
-      val := pop(&stack)
+    case .pop:
+      _ = pop_value(ins)
+
+    case .add:
+      append(&stack, arith(ins, "+"))
+    case .minus:
+      append(&stack, arith(ins, "-"))
+    case .mult:
+      append(&stack, arith(ins, "*"))
+    case .div:
+      append(&stack, arith(ins, "/"))
+    case .eq:
+      append(&stack, compare(ins, "="))
+    case .gr:
+      append(&stack, compare(ins, ">"))
+    case .less:
+      append(&stack, compare(ins, "<"))
+    case .gre:
+      append(&stack, compare(ins, ">="))
+    case .lesse:
+      append(&stack, compare(ins, "<="))
+
+    case .dup:
+      v := pop_value(ins)
+      append(&stack, v)
+      append(&stack, v)
+
+    case .swap:
+      n := as_int(ins, pop_value(ins), "swap")
+      if n < 2 {
+        runtime_fail(ins.loc, "'swap' needs a depth of at least 2, but got %d", n)
+      }
+      if n > i64(len(stack)) {
+        runtime_fail(ins.loc, "'swap' depth %d exceeds the stack size %d", n, len(stack))
+      }
+      a := len(stack) - 1
+      b := len(stack) - int(n)
+      stack[a], stack[b] = stack[b], stack[a]
+
+    case .nif:
+      cond := as_int(ins, pop_value(ins), "if")
+      if cond == 0 do ip = ins.target
+    case .nelse:
+      ip = ins.target
+    case .ndone, .nwhile:
+    // no-op markers
+    case .ndo:
+      cond := as_int(ins, pop_value(ins), "do")
+      if cond == 0 do ip = ins.target
+    case .nend:
+      ip = ins.target
+
+    case .nmems:
+      idx := as_int(ins, pop_value(ins), "mems")
+      val := pop_value(ins)
+      memory[idx] = val
+    case .nmeml:
+      idx := as_int(ins, pop_value(ins), "meml")
+      val, ok := memory[idx]
+      if !ok {
+        runtime_fail(ins.loc, "memory slot %d has not been written to", idx)
+      }
       append(&stack, val)
-      append(&stack, val)
 
-    case n_instr.add:
-      val := pop(&stack)
-      switch _ in val {
-      case f64:
-        append(&stack, val.(f64) + pop(&stack).(f64))
-      case i64:
-        append(&stack, val.(i64) + pop(&stack).(i64))
-      case string:
-        val2 := pop(&stack)
-        res := strings.concatenate(
-          {val2.(string), val.(string)},
-        )
-        append(&stack, res)
-      }
-
-    case n_instr.minus:
-      val := pop(&stack)
-      switch _ in val {
-      case f64:
-        append(&stack, pop(&stack).(f64) - val.(f64))
-      case i64:
-        append(&stack, pop(&stack).(i64) - val.(i64))
-      case string:
-        assert(false, "string minus does not exist")
-      }
-
-    case n_instr.mult:
-      val := pop(&stack)
-      switch _ in val {
-      case f64:
-        append(&stack, pop(&stack).(f64) * val.(f64))
-      case i64:
-        append(&stack, pop(&stack).(i64) * val.(i64))
-      case string:
-        assert(false, "string mult does not exist")
-      }
-
-    case n_instr.div:
-      val := pop(&stack)
-
-      switch _ in val {
-      case f64:
-        append(&stack, pop(&stack).(f64) * val.(f64))
-      case i64:
-        append(&stack, pop(&stack).(i64) * val.(i64))
-      case string:
-        assert(false, "string mult does not exist")
-      }
-
-    case n_instr.eq:
-      val := pop(&stack)
-
-      switch _ in val {
-      case f64:
-        append(&stack, i64(pop(&stack).(f64) == val.(f64)))
-      case i64:
-        append(&stack, i64(pop(&stack).(i64) == val.(i64)))
-      case string:
-        assert(false, "string mult does not exist")
-      }
-
-    case n_instr.gr:
-      val := pop(&stack)
-      switch _ in val {
-      case f64:
-        append(&stack, i64(pop(&stack).(f64) > val.(f64)))
-      case i64:
-        append(&stack, i64(pop(&stack).(i64) > val.(i64)))
-      case string:
-        assert(false, "string mult does not exist")
-      }
-
-    case n_instr.less:
-      val := pop(&stack)
-      switch _ in val {
-      case f64:
-        append(&stack, i64(pop(&stack).(f64) < val.(f64)))
-      case i64:
-        append(&stack, i64(pop(&stack).(i64) < val.(i64)))
-      case string:
-        assert(false, "string mult does not exist")
-      }
-
-
-    case n_instr.gre:
-      val := pop(&stack)
-      switch _ in val {
-      case f64:
-        append(&stack, i64(pop(&stack).(f64) >= val.(f64)))
-      case i64:
-        append(&stack, i64(pop(&stack).(i64) >= val.(i64)))
-      case string:
-        assert(false, "string mult does not exist")
-      }
-
-    case n_instr.lesse:
-      val := pop(&stack)
-      switch _ in val {
-      case f64:
-        append(&stack, i64(pop(&stack).(f64) <= val.(f64)))
-      case i64:
-        append(&stack, i64(pop(&stack).(i64) <= val.(i64)))
-      case string:
-        assert(false, "string mult does not exist")
-      }
-
-    case n_instr.nif:
-      if pop(&stack).(i64) == 0 {
-        i = instr_list[i].data.(i64)
-      }
-
-    case n_instr.nelse:
-      i = instr_list[i].data.(i64)
-
-    case n_instr.ndone, n_instr.none, n_instr.nwhile:
-
-    case n_instr.ndo:
-      if pop(&stack).(i64) == 0 do i = instr_list[i].data.(i64)
-
-    case n_instr.nend:
-      i = instr_list[i].data.(i64)
-
-    case n_instr.nmems:
-      mem[pop(&stack).(i64)] = pop(&stack)
-
-    case n_instr.nmeml:
-      append(&stack, mem[pop(&stack).(i64)])
-
-    case n_instr.swap:
-      swap_num := pop(&stack).(i64)
-      if swap_num > 1 {
-        tmp := stack[len(&stack) - 1]
-        stack[len(&stack) - 1] = stack[len(&stack) - auto_cast swap_num]
-        stack[len(&stack) - auto_cast swap_num] = tmp
-      }
-
-    case n_instr.pop:
-      _ = pop(&stack)
-
-    case n_instr.stack:
-      fmt.print("stack: ")
-      for n, i in stack {
-        fmt.print(n, "")
+    case .stack:
+      fmt.print("stack (", len(stack), "): ")
+      for v in stack {
+        switch x in v {
+        case string:
+          fmt.printf("%q ", x)
+        case i64, f64:
+          fmt.printf("%v ", x)
+        case:
+          fmt.print("<unset> ")
+        }
       }
       fmt.println()
 
-    case n_instr.int3:
+    case .int3:
       // TODO: maybe do something better ? or remove it entirely
       buf: [1]byte
       _, err := os.read(os.stdin, buf[:])
-      if err != nil {
-        fmt.eprintln("err {}", err)
-        os.exit(1)
+      if err != nil do runtime_fail(ins.loc, "failed to read from stdin: %v", err)
+
+    case .print:
+      write_value(ins, pop_value(ins), false)
+    case .dot:
+      write_value(ins, pop_value(ins), true)
+
+    case .jmp:
+      m, found := find_macro(p, ins.name)
+      if !found do runtime_fail(ins.loc, "unknown macro '%s'", ins.name)
+      push_frame(ins, .macro, code, ip + 1, 0, m.name, 0, m.loc)
+      code = m.body
+      ip = 0
+      continue
+
+    case .call:
+      f, found := find_fn(p, ins.name)
+      if !found do runtime_fail(ins.loc, "unknown function '%s'", ins.name)
+      if len(stack) < f.nargs {
+        runtime_fail(
+          ins.loc,
+          "function '%s' expects %d argument(s), but only %d are on the stack",
+          f.name,
+          f.nargs,
+          len(stack),
+        )
       }
+      push_frame(ins, .function, code, ip + 1, len(stack) - f.nargs, f.name, f.nreturns, f.loc)
+      code = f.body
+      ip = 0
+      continue
 
-    case n_instr.dot:
-      val := pop(&stack)
-
-      switch _ in val {
-      case f64:
-        fmt.printfln("%f", val.(f64))
-      case i64:
-        fmt.println(val.(i64))
-      case string:
-        print_str(val.(string))
-        fmt.println()
-      }
-
-    case n_instr.print:
-      val := pop(&stack)
-
-      switch _ in val {
-      case f64:
-        fmt.printf("%f", val.(f64))
-      case i64:
-        fmt.print(val.(i64))
-      case string:
-        print_str(val.(string))
-      }
-
-    case n_instr.jmp:
-      for m in fn_list {
-        if m.name == ins.data.(string) {
-          interpret_instrs(m.content, fn_list)
-        }
-      }
-
-    case:
-      a_assert(true, false, "instr not implemented \'", n_instr_names[ins.instr_id], "\'")
-    }
-    i += 1
-
-  }
-  n -= 1
-}
-
-// i know this looks stupid but it's the best solution
-// i have
-print_str :: proc(str: string) {
-  i := 0
-  for i < len(str) {
-    if (i == len(str) - 1 && str[i] == '"') || (i == 0 && str[i] == '"') {
-      i += 1
+    case .ret:
+      if len(frames) == 0 do runtime_fail(ins.loc, "'ret' outside of a function")
+      fr := frames[len(frames) - 1]
+      if fr.kind != .function do runtime_fail(ins.loc, "'ret' inside macro '%s'", fr.name)
+      return_from_function(ins, fr)
+      resize(&frames, len(frames) - 1)
+      code = fr.code
+      ip = fr.ip
       continue
     }
-    if str[i] == '\\' && str[i + 1] == 'n' {
-      fmt.println("")
-      i += 1
-    } else if str[i] == '\\' && str[i + 1] == 't' {
-      fmt.print('\t')
-      i += 1
-    } else if str[i] == '\\' && str[i + 1] == 'r' {
-      fmt.print('\r')
-      i += 1
-    } else if str[i] == '\\' && str[i + 1] == '"' {
-      fmt.print('\"')
-      i += 1
-    } else {
-      fmt.printf("%c", str[i])
-    }
 
-    i += 1
+    ip += 1
   }
 }
