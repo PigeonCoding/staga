@@ -3,6 +3,7 @@ package staga
 import "core:fmt"
 import "core:os"
 import "core:strings"
+import lx "../thirdparty/lexer"
 
 fn_def :: struct {
   name:    string,
@@ -14,7 +15,7 @@ parse_instrs_intern :: proc(
   fn_list: ^[dynamic]fn_def,
   current_instr: ^uint,
   file: string,
-  lex: ^lexer = nil,
+  lex: ^lx.lexer = nil,
   delimiter: string = "",
   is_fn: bool = false,
 ) {
@@ -26,13 +27,13 @@ parse_instrs_intern :: proc(
   defer delete(while_stack)
 
   stack_len: int = 0
-  l: lexer
+  l: lx.lexer
 
   if lex == nil {
-    l = init_lexer(file)
-    get_token(&l)
+    l = lx.init_lexer(file)
+    lx.get_token(&l)
   } else {
-    get_token(lex)
+    lx.get_token(lex)
     l.file = lex.file
   }
 
@@ -57,18 +58,25 @@ parse_instrs_intern :: proc(
       }
       stack_len += 1
 
-    case .dot:
-      st = {
-        instr_id  = n_instr.dot,
-        data      = "",
-        data_type = n_type.ops,
+    case .punct:
+      // '.'
+      switch l.token.intlit {
+      case '.':
+        st = {
+          instr_id  = n_instr.dot,
+          data      = "",
+          data_type = n_type.ops,
+        }
+        stack_len -= 1
+      case:
+        fmt.eprintfln("%s:%d:%d unknown punct '%c'", l.file, l.row, l.col, l.token.intlit)
+        os.exit(1)
       }
-      stack_len -= 1
 
     case .intlit:
       st = {
         instr_id  = n_instr.push,
-        data      = l.token.int_lit,
+        data      = l.token.intlit,
         data_type = n_type.nint,
       }
       stack_len += 1
@@ -76,12 +84,12 @@ parse_instrs_intern :: proc(
     case .floatlit:
       st = {
         instr_id  = n_instr.push,
-        data      = l.token.float_lit,
+        data      = l.token.floatlit,
         data_type = n_type.nfloat,
       }
       stack_len += 1
 
-    case .minus_sign:
+    case .minus:
       // '-'
       st = {
         instr_id  = n_instr.minus,
@@ -89,7 +97,7 @@ parse_instrs_intern :: proc(
       }
       stack_len -= 1
 
-    case .plus_sign:
+    case .plus:
       // '+'
       st = {
         instr_id  = n_instr.add,
@@ -97,7 +105,7 @@ parse_instrs_intern :: proc(
       }
       stack_len -= 1
 
-    case .asterisk:
+    case .mult:
       // '*'
       st = {
         instr_id  = n_instr.mult,
@@ -105,7 +113,7 @@ parse_instrs_intern :: proc(
       }
       stack_len -= 1
 
-    case .forward_slash:
+    case .div:
       // '/'
       st = {
         instr_id  = n_instr.div,
@@ -113,7 +121,7 @@ parse_instrs_intern :: proc(
       }
       stack_len -= 1
 
-    case .less_than_sign:
+    case .less:
       // '<'
       st = {
         instr_id  = n_instr.less,
@@ -121,7 +129,7 @@ parse_instrs_intern :: proc(
       }
       stack_len -= 1
 
-    case .greater_than_sign:
+    case .greater:
       // '>'
       st = {
         instr_id  = n_instr.gr,
@@ -129,7 +137,7 @@ parse_instrs_intern :: proc(
       }
       stack_len -= 1
 
-    case .equals_sign:
+    case .assign:
       // '='
       st = {
         instr_id  = n_instr.eq,
@@ -274,10 +282,10 @@ parse_instrs_intern :: proc(
         stack_len += 1
 
       case "fn":
-        if lex == nil do get_token(&l)
-        else do get_token(lex)
+        if lex == nil do lx.get_token(&l)
+        else do lx.get_token(lex)
 
-        if l.token.type == .either_end_or_failure || l.token.type == .null_char {
+        if l.token.type == .either_end_or_failure || l.token.type == .none {
           fmt.eprintln("no fn name?")
           os.exit(1)
         }
@@ -296,12 +304,12 @@ parse_instrs_intern :: proc(
         parse_instrs_intern(&tmp_macro, fn_list, current_instr, file, &l, "fend", true)
         mac.content = tmp_macro[:]
         append(fn_list, mac)
-        get_token(&l)
+        lx.get_token(&l)
         continue
 
       case "jmp":
-        if lex == nil do get_token(&l)
-        else do get_token(lex)
+        if lex == nil do lx.get_token(&l)
+        else do lx.get_token(lex)
 
         if lex == nil {
           if !check_type(&l, .id) do os.exit(1)
@@ -315,10 +323,10 @@ parse_instrs_intern :: proc(
         }
 
       case "load":
-        if lex == nil do get_token(&l)
-        else do get_token(lex)
+        if lex == nil do lx.get_token(&l)
+        else do lx.get_token(lex)
 
-        if l.token.type == .either_end_or_failure || l.token.type == .null_char {
+        if l.token.type == .either_end_or_failure || l.token.type == .none {
           fmt.eprintln("no import path specified")
           os.exit(1)
         }
@@ -345,8 +353,8 @@ parse_instrs_intern :: proc(
 
         parse_instrs_intern(instrs, fn_list, current_instr, file_load_path, nil)
 
-        if lex == nil do get_token(&l)
-        else do get_token(lex)
+        if lex == nil do lx.get_token(&l)
+        else do lx.get_token(lex)
 
         continue
 
@@ -365,8 +373,8 @@ parse_instrs_intern :: proc(
 
     if l.token.str == delimiter && is_fn do fmt.println("maybe")
 
-    if lex == nil do get_token(&l)
-    else do get_token(lex)
+    if lex == nil do lx.get_token(&l)
+    else do lx.get_token(lex)
 
     if !is_fn do current_instr^ += 1
     else do ins_cnt += 1

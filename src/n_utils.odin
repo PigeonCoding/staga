@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:os"
 import "core:strconv"
 import "core:strings"
+import lx "../thirdparty/lexer"
 
 // int to string
 itos :: proc(i: int) -> string {
@@ -24,7 +25,7 @@ a_assert :: proc(with_assert: bool, cond: bool, rest: ..string) {
   }
 }
 
-check_type :: proc(l: ^lexer, expected: token_id) -> bool {
+check_type :: proc(l: ^lx.lexer, expected: lx.token_id) -> bool {
   if l.token.type != expected {
     fmt.eprintfln("%s:%d:%d expected {} but got {}", l.file, l.row + 1, l.col + 1, expected, l.token.type)
     // os.exit(1)

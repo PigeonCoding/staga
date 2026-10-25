@@ -1,10 +1,10 @@
 # Staga
-a stack-based programming language i am working on
+a stack-based programming language I am working on
 
 ## Plans:
-- [x] turing complete [implemented rule110](https://github.com/PigeonCoding/staga/commit/6f295e31349de59f7852529347ede943333f564a)
+- [x] Turing complete [implemented rule110](https://github.com/PigeonCoding/staga/commit/6f295e31349de59f7852529347ede943333f564a)
 - [ ] Interoperability with other languages
-- [x] functions (or something resembling them) ~~[macros were implement](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)~~ [functions have been implemented](https://github.com/PigeonCoding/staga/commit/a082cea6b1c9175e1813560378e2b7acffb6e5f9)
+- [x] functions (or something resembling them) ~~[macros were implemented](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)~~ [functions have been implemented](https://github.com/PigeonCoding/staga/commit/a082cea6b1c9175e1813560378e2b7acffb6e5f9)
 
 ## "Features":
 ### printing
@@ -17,7 +17,7 @@ a stack-based programming language i am working on
 1 2 3 stack    pop pop pop // prints the stack
 ```
 
-### arithmetics
+### arithmetic
 ```
  -5 5 + .
  6 1  - .
@@ -35,29 +35,29 @@ a stack-based programming language i am working on
 ### Control Flow
 ```
  1 0 > if "yes"   else "no"         done . // if 1 > 0
- 69 if "non zero" else "it is zero" done . // if 69 != 0
+ 69 if "non-zero" else "it is zero" done . // if 69 != 0
 
  0 while dup < 100 do dup . 1 + end
 
- int3 "waited for you" .                   // halt program execution until user presseed enter
+ int3 "waited for you" .                   // halt program execution until the user presses enter
 ```
 
 ### stack manipulation
 ```
 69 dup . .
-1 2 3 2 swap . . // this swaps the top element with the 2th one aka 3 and 2 respectively in this case
-1 pop            // deleted the top of the stack aka the 1 in this example
+1 2 3 2 swap . . // this swaps the top element with the 2nd one, aka 3 and 2 respectively in this case
+1 pop            // deletes the top of the stack, aka the 1 in this example
 ```
 
 ### memory
 ```
- 10 2 mems // stores 10 in memory no 2
- 2 meml .  // loads the value in memory no 2 and prints it
+ 10 2 mems // stores 10 in memory no. 2
+ 2 meml .  // loads the value in memory no. 2 and prints it
 ```
 
 ### macros
 ```
- fn test1_ // start of a macro names test1_
+ fn test1_ // start of a macro named test1_
   69 dup . 
   351 + .
  fend // end of the macro
@@ -79,6 +79,9 @@ main.stg
 ## How To Build:
 first install [odin](https://odin-lang.org/)
 
+this project vendors the shared lexer from
+[pigeon.odin](https://github.com/PigeonCoding/pigeon.odin) in `thirdparty/lexer`.
+
 then
 ```console
  odin run builder -- debug
@@ -86,6 +89,7 @@ then
  odin run builder -- all
 ```
 The build is configured in `builder/main.odin` using [build_odin](https://github.com/PigeonCoding/build_odin), which is vendored in `builder/build_odin`.
+
 ## How to Use
 ### Note:
 run:
