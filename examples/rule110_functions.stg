@@ -1,18 +1,12 @@
-// rule 110, but with real functions instead of the 8 macro cases.
-//
 // the definition, reading the neighbourhood as (left, centre, right):
 //
 //   111 -> 0    110 -> 1    101 -> 1    100 -> 0
 //   011 -> 1    010 -> 1    001 -> 1    000 -> 0
-//
-// so only 111, 100 and 000 produce a dead cell.
 
 macro BOARD_SIZE 100 fend
 macro ITERATIONS 96 fend
 
-// the rule itself. args: left centre right, returns the new centre.
 fn next_cell 3 1
-  // keep the args in scratch memory so they can be read more than once
   402 mems // right
   401 mems // centre
   400 mems // left
@@ -34,7 +28,6 @@ fn next_cell 3 1
   1 ret
 fend
 
-// print BOARD_SIZE cells starting at the given memory slot
 fn print_row 1 0
   500 mems // save the start slot
   0 while dup jmp BOARD_SIZE < do
@@ -45,8 +38,6 @@ fn print_row 1 0
   ret
 fend
 
-// old row is mem[1..100]. copy it to the scratch row at mem[102..201].
-// mem[101] and mem[202] stay 0 and act as the outside neighbours.
 fn copy_row 0 0
   0 while dup jmp BOARD_SIZE < do
     dup 600 mems              // save the cell index
@@ -58,7 +49,6 @@ fn copy_row 0 0
   ret
 fend
 
-// next[p] = rule(old[p-1], old[p], old[p+1]), for every cell
 fn step 0 0
   0 while dup jmp BOARD_SIZE < do
     dup 600 mems              // save the cell index
