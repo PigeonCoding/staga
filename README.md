@@ -4,7 +4,7 @@ a stack-based programming language I am working on
 ## Plans:
 - [x] Turing complete [implemented rule110](https://github.com/PigeonCoding/staga/commit/6f295e31349de59f7852529347ede943333f564a)
 - [ ] Interoperability with other languages
-- [x] functions (or something resembling them) ~~[macros were implemented](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)~~ [functions have been implemented](https://github.com/PigeonCoding/staga/commit/a082cea6b1c9175e1813560378e2b7acffb6e5f9)
+- [x] functions (or something resembling them) ~~[macros were implemented](https://github.com/PigeonCoding/staga/commit/a637a6eb6fad3ad26093e13330ddb26119b2a2ee)~~ ~~[functions have been implemented](https://github.com/PigeonCoding/staga/commit/a082cea6b1c9175e1813560378e2b7acffb6e5f9)~~ now both exist
 - [x] real functions with call frames, arguments, return values and recursion
 - [x] static stack-underflow checking
 - [x] sparse memory (map instead of a fixed 4096 slots)
@@ -149,10 +149,14 @@ Every diagnostic points at the source:
 bad.stg:3:9: error: stack underflow: '+' needs 2 value(s), but only 1 would be on the stack
 ```
 
-Runtime errors use the same format and include a call stack:
+Runtime errors use the same format and include the call stack as a tree,
+nested under the function that made each call:
 ```
 bad.stg:7:12: runtime error: division by zero
-  call stack: div() fib()
+  call stack:
+    rec()
+    └─ rec()
+       └─ div()
 ```
 
 ## Tests

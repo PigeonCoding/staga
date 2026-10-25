@@ -503,6 +503,24 @@ test_runtime_errors :: proc(t: ^testing.T) {
 
   expect_error(t, "division by zero", `10 0 / .`, "division by zero")
   expect_error(t, "mixed arithmetic", `1 2.5 + .`, "cannot use '+'")
+  expect_error(
+    t,
+    "call stack tree",
+    `
+fn div 2 1
+  / ret
+fend
+fn rec 1 1
+  dup 0 = if
+    1 0 call div ret
+  done
+  dup 1 - call rec
+  ret
+fend
+2 call rec .
+`,
+    "  call stack:\n    rec()\n    └─ rec()\n       └─ rec()\n          └─ div()",
+  )
   expect_error(t, "uninitialised memory", `42 meml .`, "has not been written to")
   expect_error(t, "swap too deep", `1 2 5 swap`, "exceeds the stack size")
   expect_error(t, "swap too shallow", `1 2 0 swap`, "at least 2")
