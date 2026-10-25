@@ -4,11 +4,11 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
-stack: [dynamic]str_int
+stack: [dynamic]var_types
 
 // Memory is a sparse map now, so slots have no arbitrary 4096 limit and a
 // negative index is a normal key instead of an out-of-bounds panic.
-memory: map[i64]str_int
+memory: map[i64]var_types
 
 frame_kind :: enum {
   macro,
@@ -29,14 +29,14 @@ frames: [dynamic]frame
 
 MAX_CALL_DEPTH :: 100_000
 
-pop_value :: proc(ins: instr) -> str_int {
+pop_value :: proc(ins: instr) -> var_types {
   if len(stack) == 0 {
     runtime_fail(ins.loc, "'%s' needs a value, but the stack is empty", n_instr_names[ins.op])
   }
   return pop(&stack)
 }
 
-as_int :: proc(ins: instr, v: str_int, what: string) -> i64 {
+as_int :: proc(ins: instr, v: var_types, what: string) -> i64 {
   n, ok := v.(i64)
   if !ok {
     runtime_fail(ins.loc, "'%s' expected an int, but got a %s", what, value_kind(v))
@@ -44,7 +44,7 @@ as_int :: proc(ins: instr, v: str_int, what: string) -> i64 {
   return n
 }
 
-misuse :: proc(ins: instr, op: string, a: str_int, b: str_int) -> ! {
+misuse :: proc(ins: instr, op: string, a: var_types, b: var_types) -> ! {
   runtime_fail(ins.loc, "cannot use '%s' on %s and %s", op, value_kind(a), value_kind(b))
 }
 
@@ -97,7 +97,7 @@ cmp_string :: proc(ins: instr, op: string, a, b: string) -> i64 {
   runtime_fail(ins.loc, "unsupported comparison '%s'", op)
 }
 
-arith :: proc(ins: instr, op: string) -> str_int {
+arith :: proc(ins: instr, op: string) -> var_types {
   rhs := pop_value(ins)
   lhs := pop_value(ins)
 
@@ -160,7 +160,7 @@ compare :: proc(ins: instr, op: string) -> i64 {
   misuse(ins, op, lhs, rhs)
 }
 
-write_value :: proc(ins: instr, v: str_int, newline: bool) {
+write_value :: proc(ins: instr, v: var_types, newline: bool) {
   switch x in v {
   case string:
     fmt.print(x)
@@ -226,9 +226,9 @@ return_from_function :: proc(ins: instr, fr: frame) {
 }
 
 run :: proc(p: program) {
-  stack = make([dynamic]str_int)
+  stack = make([dynamic]var_types)
   frames = make([dynamic]frame)
-  memory = make(map[i64]str_int)
+  memory = make(map[i64]var_types)
 
   defer {
     delete(stack)

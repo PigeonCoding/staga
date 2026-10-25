@@ -163,12 +163,6 @@ interpreter once, then runs real programs against it:
 odin test tests
 ```
 
-You can also run the tests in parallel:
-
-```console
-odin test tests -define:ODIN_TEST_THREADS=4
-```
-
 ## How To Build:
 first install [odin](https://odin-lang.org/)
 

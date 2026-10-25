@@ -61,7 +61,7 @@ check_flags :: proc(container: ^flag_container) {
           case int:
             arg_i += 1
             if os.args[arg_i][0] == '-' || (os.args[arg_i][0] >= '0' && os.args[arg_i][0] <= '9') {
-              f.value = strconv.atoi(os.args[arg_i])
+              f.value, _ = strconv.parse_int(os.args[arg_i])
               yes = true
             }
           case string:

@@ -1,13 +1,13 @@
 package staga
 
 // The value type of the language: everything on the stack is one of these.
-str_int :: union {
+var_types :: union {
   string,
   i64,
   f64,
 }
 
-value_kind :: proc(v: str_int) -> string {
+value_kind :: proc(v: var_types) -> string {
   switch _ in v {
   case i64:
     return "int"
@@ -29,7 +29,7 @@ src_loc :: struct {
 
 instr :: struct {
   op:     n_instr,
-  data:   str_int, // value for `push`, unused otherwise
+  data:   var_types, // value for `push`, unused otherwise
   target: int,     // jump target, patched by the parser
   name:   string,  // callee for `call` / `jmp`
   loc:    src_loc,
