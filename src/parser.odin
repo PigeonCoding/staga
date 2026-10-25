@@ -2,388 +2,417 @@ package staga
 
 import "core:fmt"
 import "core:os"
+import "core:path/filepath"
 import "core:strings"
 import lx "../thirdparty/lexer"
 
-fn_def :: struct {
-  name:    string,
-  content: []instr,
+block_kind :: enum {
+  top,
+  function,
+  macro,
 }
 
-parse_instrs_intern :: proc(
-  instrs: ^[dynamic]instr,
-  fn_list: ^[dynamic]fn_def,
-  current_instr: ^uint,
-  file: string,
-  lex: ^lx.lexer = nil,
-  delimiter: string = "",
-  is_fn: bool = false,
-) {
-  ins_cnt: int = 0
+if_ctx :: struct {
+  if_idx:   int,
+  else_idx: int,
+  has_else: bool,
+  loc:      src_loc,
+}
 
-  if_stack := [dynamic]int{}
-  defer delete(if_stack)
-  while_stack := [dynamic]int{}
-  defer delete(while_stack)
+loop_ctx :: struct {
+  while_idx: int,
+  do_idx:    int,
+  has_do:    bool,
+  loc:       src_loc,
+}
 
-  stack_len: int = 0
-  l: lx.lexer
+block_tag :: enum {
+  if_block,
+  while_block,
+}
 
-  if lex == nil {
-    l = lx.init_lexer(file)
-    lx.get_token(&l)
-  } else {
-    lx.get_token(lex)
-    l.file = lex.file
+loc_of :: proc(t: lx.token) -> src_loc {
+  // token.row is 1-based, token.col is 0-based. Normalise both to 1-based.
+  return {file = t.file, row = int(t.row), col = int(t.col) + 1}
+}
+
+token_desc :: proc(t: lx.token) -> string {
+  #partial switch t.type {
+  case .either_end_or_failure:
+    return "end of file"
+  case .intlit:
+    return fmt.tprintf("integer %d", t.intlit)
+  case .floatlit:
+    return fmt.tprintf("float %v", t.floatlit)
+  case .dqstring, .sqstring:
+    return fmt.tprintf("string %q", t.str)
+  case .id:
+    return fmt.tprintf("word '%s'", t.str)
+  case .punct:
+    return fmt.tprintf("'%c'", rune(t.intlit))
   }
+  return fmt.tprintf("%v", t.type)
+}
 
+advance :: proc(l: ^lx.lexer) {
+  lx.get_token(l)
+}
 
-  for l.token.type != .either_end_or_failure {
-    if lex != nil {
-      l.row = lex.row
-      l.col = lex.col
-      l.file = lex.file
-      l.token = lex.token
+// Advance to the next token and require it to be a word.
+take_id :: proc(l: ^lx.lexer, what: string) -> lx.token {
+  advance(l)
+  if l.token.type != .id {
+    fail(loc_of(l.token), "expected %s, but found %s", what, token_desc(l.token))
+  }
+  return l.token
+}
+
+// Advance to the next token and require it to be an integer.
+take_int :: proc(l: ^lx.lexer, what: string) -> i64 {
+  advance(l)
+  if l.token.type != .intlit {
+    fail(loc_of(l.token), "expected %s, but found %s", what, token_desc(l.token))
+  }
+  return l.token.intlit
+}
+
+// Advance to the next token and require it to be a string.
+take_string :: proc(l: ^lx.lexer, what: string) -> lx.token {
+  advance(l)
+  if l.token.type != .dqstring && l.token.type != .sqstring {
+    fail(loc_of(l.token), "expected %s, but found %s", what, token_desc(l.token))
+  }
+  return l.token
+}
+
+name_taken :: proc(fns: ^[dynamic]fn_def, macros: ^[dynamic]macro_def, name: string) -> bool {
+  for f in fns^ {
+    if f.name == name do return true
+  }
+  for m in macros^ {
+    if m.name == name do return true
+  }
+  return false
+}
+
+emit :: proc(code: ^[dynamic]instr, op: n_instr, loc: src_loc) {
+  append(code, instr{op = op, loc = loc})
+}
+
+// Parses instructions until EOF (top level) or until `fend` (function/macro
+// body). The lexer is left on the token that ended the block.
+parse_block :: proc(
+  l: ^lx.lexer,
+  code: ^[dynamic]instr,
+  fns: ^[dynamic]fn_def,
+  macros: ^[dynamic]macro_def,
+  kind: block_kind,
+) {
+  if_stack: [dynamic]if_ctx
+  defer delete(if_stack)
+  loop_stack: [dynamic]loop_ctx
+  defer delete(loop_stack)
+  blocks: [dynamic]block_tag
+  defer delete(blocks)
+
+  for {
+    tok := l.token
+    // The body terminator is a word, not a string that happens to say "fend".
+    if kind != .top && tok.type == .id && tok.str == "fend" {
+      break
+    }
+    if tok.type == .either_end_or_failure {
+      if kind != .top {
+        name := "function" if kind == .function else "macro"
+        fail(loc_of(tok), "unexpected end of file: this %s is missing its 'fend'", name)
+      }
+      break
     }
 
-    if l.token.str == delimiter && delimiter != "" do break
+    loc := loc_of(tok)
 
-    st: instr
-    #partial switch l.token.type {
-    case .dqstring:
-      st = {
-        instr_id  = n_instr.push,
-        data      = l.token.str,
-        data_type = n_type.nstring,
-      }
-      stack_len += 1
-
-    case .punct:
-      // '.'
-      switch l.token.intlit {
-      case '.':
-        st = {
-          instr_id  = n_instr.dot,
-          data      = "",
-          data_type = n_type.ops,
-        }
-        stack_len -= 1
-      case:
-        fmt.eprintfln("%s:%d:%d unknown punct '%c'", l.file, l.row, l.col, l.token.intlit)
-        os.exit(1)
-      }
-
-    case .intlit:
-      st = {
-        instr_id  = n_instr.push,
-        data      = l.token.intlit,
-        data_type = n_type.nint,
-      }
-      stack_len += 1
+    #partial switch tok.type {
+    case .intlit, .charlit:
+      append(code, instr{op = .push, data = tok.intlit, loc = loc})
 
     case .floatlit:
-      st = {
-        instr_id  = n_instr.push,
-        data      = l.token.floatlit,
-        data_type = n_type.nfloat,
-      }
-      stack_len += 1
+      append(code, instr{op = .push, data = tok.floatlit, loc = loc})
 
-    case .minus:
-      // '-'
-      st = {
-        instr_id  = n_instr.minus,
-        data_type = n_type.ops,
+    case .dqstring, .sqstring:
+      append(code, instr{op = .push, data = tok.str, loc = loc})
+
+    case .punct:
+      switch tok.intlit {
+      case '.':
+        emit(code, .dot, loc)
+      case:
+        fail(loc, "unknown punctuation '%c'", rune(tok.intlit))
       }
-      stack_len -= 1
 
     case .plus:
-      // '+'
-      st = {
-        instr_id  = n_instr.add,
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-
+      emit(code, .add, loc)
+    case .minus:
+      emit(code, .minus, loc)
     case .mult:
-      // '*'
-      st = {
-        instr_id  = n_instr.mult,
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-
+      emit(code, .mult, loc)
     case .div:
-      // '/'
-      st = {
-        instr_id  = n_instr.div,
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-
+      emit(code, .div, loc)
     case .less:
-      // '<'
-      st = {
-        instr_id  = n_instr.less,
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-
+      emit(code, .less, loc)
     case .greater:
-      // '>'
-      st = {
-        instr_id  = n_instr.gr,
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-
+      emit(code, .gr, loc)
     case .assign:
-      // '='
-      st = {
-        instr_id  = n_instr.eq,
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-
+      emit(code, .eq, loc)
     case .lesseq:
-      st = {
-        instr_id  = n_instr.lesse,
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-
+      emit(code, .lesse, loc)
     case .greatereq:
-      st = {
-        instr_id  = n_instr.gre,
-        data_type = n_type.ops,
-      }
-      stack_len -= 1
-
+      emit(code, .gre, loc)
 
     case .id:
-      switch l.token.str {
-      // keywords
+      switch tok.str {
       case "stack":
-        st = {
-          instr_id  = n_instr.stack,
-          data      = "",
-          data_type = n_type.mem,
-        }
-
+        emit(code, .stack, loc)
       case "pop":
-        st = {
-          instr_id  = n_instr.pop,
-          data      = "",
-          data_type = n_type.ops,
-        }
-        stack_len -= 1
-
+        emit(code, .pop, loc)
+      case "dup":
+        emit(code, .dup, loc)
+      case "swap":
+        emit(code, .swap, loc)
       case "print":
-        st = {
-          instr_id  = n_instr.print,
-          data      = "",
-          data_type = n_type.ops,
-        }
-        stack_len -= 1
+        emit(code, .print, loc)
+      case "mems":
+        emit(code, .nmems, loc)
+      case "meml":
+        emit(code, .nmeml, loc)
+      case "int3":
+        emit(code, .int3, loc)
 
       case "if":
-        st = {
-          instr_id  = n_instr.nif,
-          data_type = n_type.cjmp,
-        }
-        stack_len -= 1
-        if is_fn do append(&if_stack, ins_cnt)
-        else do append(&if_stack, auto_cast current_instr^)
+        append(code, instr{op = .nif, loc = loc})
+        append(&if_stack, if_ctx{if_idx = len(code) - 1, else_idx = -1, loc = loc})
+        append(&blocks, .if_block)
 
       case "else":
-        st = {
-          instr_id  = n_instr.nelse,
-          data_type = n_type.cjmp,
+        if len(if_stack) == 0 {
+          fail(loc, "'else' without a matching 'if'")
         }
-
-        if is_fn do instrs[pop(&if_stack)].data = cast(i64)ins_cnt
-        else do instrs[pop(&if_stack)].data = cast(i64)current_instr^
-
-        if is_fn do append(&if_stack, ins_cnt)
-        else do append(&if_stack, auto_cast current_instr^)
+        if len(blocks) == 0 || blocks[len(blocks) - 1] != .if_block {
+          fail(loc, "'else' does not match the innermost open block (it is a 'while')")
+        }
+        ctx := &if_stack[len(if_stack) - 1]
+        if ctx.has_else {
+          fail(
+            loc,
+            "second 'else' for the 'if' opened at %s:%d:%d",
+            ctx.loc.file,
+            ctx.loc.row,
+            ctx.loc.col,
+          )
+        }
+        ctx.has_else = true
+        ctx.else_idx = len(code)
+        append(code, instr{op = .nelse, loc = loc})
+        code[ctx.if_idx].target = ctx.else_idx
 
       case "done":
-        st = {
-          instr_id  = n_instr.ndone,
-          data_type = n_type.cjmp,
+        if len(if_stack) == 0 {
+          fail(loc, "'done' without a matching 'if'")
         }
-
-        if is_fn do instrs[pop(&if_stack)].data = cast(i64)ins_cnt
-        else do instrs[pop(&if_stack)].data = cast(i64)current_instr^
+        if len(blocks) == 0 || blocks[len(blocks) - 1] != .if_block {
+          fail(loc, "'done' does not match the innermost open block (it is a 'while')")
+        }
+        _ = pop(&blocks)
+        ctx := pop(&if_stack)
+        append(code, instr{op = .ndone, loc = loc})
+        done_idx := len(code) - 1
+        if ctx.has_else {
+          code[ctx.else_idx].target = done_idx
+        } else {
+          code[ctx.if_idx].target = done_idx
+        }
 
       case "while":
-        st = {
-          instr_id  = n_instr.nwhile,
-          data_type = n_type.cjmp,
-        }
-
-        append(&while_stack, stack_len)
-        // else do append(&while_stack, auto_cast current_instr^)
-        if is_fn do append(&while_stack, ins_cnt)
-        else do append(&while_stack, auto_cast current_instr^)
-
-      case "dup":
-        st = {
-          instr_id  = n_instr.dup,
-          data_type = n_type.ops,
-        }
-        stack_len += 1
+        append(code, instr{op = .nwhile, loc = loc})
+        append(&loop_stack, loop_ctx{while_idx = len(code) - 1, do_idx = -1, loc = loc})
+        append(&blocks, .while_block)
 
       case "do":
-        st = {
-          instr_id  = n_instr.ndo,
-          data_type = n_type.cjmp,
+        if len(loop_stack) == 0 {
+          fail(loc, "'do' without a matching 'while'")
         }
-        if is_fn do append(&while_stack, ins_cnt)
-        else do append(&while_stack, auto_cast current_instr^)
-
-        stack_len -= 1
+        if len(blocks) == 0 || blocks[len(blocks) - 1] != .while_block {
+          fail(loc, "'do' does not match the innermost open block (it is an 'if')")
+        }
+        ctx := &loop_stack[len(loop_stack) - 1]
+        if ctx.has_do {
+          fail(
+            loc,
+            "second 'do' for the 'while' opened at %s:%d:%d",
+            ctx.loc.file,
+            ctx.loc.row,
+            ctx.loc.col,
+          )
+        }
+        ctx.has_do = true
+        ctx.do_idx = len(code)
+        append(code, instr{op = .ndo, loc = loc})
 
       case "end":
-        st = {
-          instr_id  = n_instr.nend,
-          data_type = n_type.cjmp,
+        if len(loop_stack) == 0 {
+          fail(loc, "'end' without a matching 'while'")
         }
-
-        do_i := pop(&while_stack)
-        while_i := pop(&while_stack)
-        instrs[do_i].data = cast(i64)current_instr^
-        _ = pop(&while_stack)
-
-        // TODO: check for stack size before and after loop but with macros
-        // cause for now they are broken
-        st.data = cast(i64)while_i
-        instrs[do_i].data = cast(i64)current_instr^
-
-      case "swap":
-        st = {
-          instr_id  = n_instr.swap,
-          data_type = n_type.ops,
+        if len(blocks) == 0 || blocks[len(blocks) - 1] != .while_block {
+          fail(loc, "'end' does not match the innermost open block (it is an 'if')")
         }
-        stack_len -= 1
-
-      case "mems":
-        st = {
-          instr_id  = n_instr.nmems,
-          data_type = n_type.mem,
+        _ = pop(&blocks)
+        ctx := pop(&loop_stack)
+        if !ctx.has_do {
+          fail(
+            loc,
+            "the 'while' opened at %s:%d:%d has no 'do'",
+            ctx.loc.file,
+            ctx.loc.row,
+            ctx.loc.col,
+          )
         }
-        stack_len -= 2
+        append(code, instr{op = .nend, loc = loc})
+        end_idx := len(code) - 1
+        code[ctx.do_idx].target = end_idx
+        code[end_idx].target = ctx.while_idx
 
-      case "meml":
-        st = {
-          instr_id  = n_instr.nmeml,
-          data_type = n_type.mem,
+      case "ret":
+        if kind != .function {
+          fail(loc, "'ret' is only allowed inside a function")
         }
-        stack_len += 1
+        emit(code, .ret, loc)
 
       case "fn":
-        if lex == nil do lx.get_token(&l)
-        else do lx.get_token(lex)
+        parse_fn(l, fns, macros)
 
-        if l.token.type == .either_end_or_failure || l.token.type == .none {
-          fmt.eprintln("no fn name?")
-          os.exit(1)
-        }
+      case "macro":
+        parse_macro(l, fns, macros)
 
-        if lex == nil {
-          if !check_type(&l, .id) do os.exit(1)
-        } else {
-          if !check_type(lex, .id) do os.exit(1)
-        }
-
-        mac := fn_def {
-          name = l.token.str,
-        }
-
-        tmp_macro: [dynamic]instr
-        parse_instrs_intern(&tmp_macro, fn_list, current_instr, file, &l, "fend", true)
-        mac.content = tmp_macro[:]
-        append(fn_list, mac)
-        lx.get_token(&l)
-        continue
+      case "call":
+        parse_call(l, code, loc, .call)
 
       case "jmp":
-        if lex == nil do lx.get_token(&l)
-        else do lx.get_token(lex)
-
-        if lex == nil {
-          if !check_type(&l, .id) do os.exit(1)
-        } else {
-          if !check_type(lex, .id) do os.exit(1)
-        }
-
-        st = {
-          instr_id = n_instr.jmp,
-          data     = l.token.str,
-        }
+        parse_call(l, code, loc, .jmp)
 
       case "load":
-        if lex == nil do lx.get_token(&l)
-        else do lx.get_token(lex)
-
-        if l.token.type == .either_end_or_failure || l.token.type == .none {
-          fmt.eprintln("no import path specified")
-          os.exit(1)
+        path_tok := take_string(l, "a file path after 'load'")
+        if len(path_tok.str) == 0 {
+          fail(loc_of(path_tok), "expected a file path, but got an empty string")
         }
-
-        if lex == nil {
-          if !check_type(&l, .dqstring) && !check_type(&l, .sqstring) do os.exit(1)
-        } else {
-          if !check_type(lex, .dqstring) && !check_type(lex, .sqstring) do os.exit(1)
+        name := path_tok.str
+        if !strings.ends_with(name, ".stg") {
+          name = strings.concatenate({name, ".stg"})
         }
-
-        if l.token.str == "" || l.token.str == " " {
-          fmt.eprintfln("%s:%d:%d expected a path but got an empty string", l.file, l.row, l.col)
-          os.exit(1)
+        dir := filepath.dir(l.file)
+        path, _ := filepath.join([]string{dir, name})
+        if !os.exists(path) {
+          fail(loc_of(path_tok), "cannot load '%s': file not found", path)
         }
+        parse_file(path, code, fns, macros)
 
-        file_load_path: string
-        if ODIN_OS == .Windows do file_load_path = strings.trim_right_proc(l.file, proc(t: rune) -> bool {
-          return t != '\\'
-        })
-        else do file_load_path = strings.trim_right_proc(l.file, proc(t: rune) -> bool {
-          return t != '/'
-        })
-        file_load_path = strings.concatenate({file_load_path, l.token.str, ".stg"})
-
-        parse_instrs_intern(instrs, fn_list, current_instr, file_load_path, nil)
-
-        if lex == nil do lx.get_token(&l)
-        else do lx.get_token(lex)
-
-        continue
+      case "fend":
+        fail(loc, "'fend' without a matching 'fn' or 'macro'")
 
       case:
-        fmt.eprintfln("%s:%d:%d unknown id '{}'", l.file, l.row, l.col, l.token.str)
-        os.exit(1)
+        fail(loc, "unknown word '%s'", tok.str)
       }
 
     case:
-      fmt.eprintf("%s:%d:%d unknown ", l.file, l.row, l.col)
-      fmt.println(l.token.type)
-      os.exit(1)
+      fail(loc, "unexpected %s", token_desc(tok))
     }
 
-    append(instrs, st)
+    advance(l)
+  }
 
-    if l.token.str == delimiter && is_fn do fmt.println("maybe")
-
-    if lex == nil do lx.get_token(&l)
-    else do lx.get_token(lex)
-
-    if !is_fn do current_instr^ += 1
-    else do ins_cnt += 1
+  if len(if_stack) > 0 {
+    ctx := if_stack[len(if_stack) - 1]
+    fail(ctx.loc, "'if' opened here is never closed (missing 'done')")
+  }
+  if len(loop_stack) > 0 {
+    ctx := loop_stack[len(loop_stack) - 1]
+    fail(ctx.loc, "'while' opened here is never closed (missing 'end')")
   }
 }
 
-parse_instrs :: proc(instrs: ^[dynamic]instr, fn_list: ^[dynamic]fn_def, files: []string) {
-  current_instr: uint = 0
-  for file in files {
-    parse_instrs_intern(instrs, fn_list, &current_instr, file, nil)
+parse_fn :: proc(
+  l: ^lx.lexer,
+  fns: ^[dynamic]fn_def,
+  macros: ^[dynamic]macro_def,
+) {
+  name_tok := take_id(l, "a function name")
+  nargs := take_int(l, fmt.tprintf("the number of arguments for '%s'", name_tok.str))
+  nreturns := take_int(l, fmt.tprintf("the number of return values for '%s'", name_tok.str))
+
+  if nargs < 0 || nreturns < 0 {
+    fail(loc_of(name_tok), "argument and return counts must not be negative")
   }
+  if name_taken(fns, macros, name_tok.str) {
+    fail(loc_of(name_tok), "'%s' is already defined", name_tok.str)
+  }
+
+  body: [dynamic]instr
+  advance(l) // first token of the body
+  parse_block(l, &body, fns, macros, .function)
+
+  append(
+    fns,
+    fn_def {
+      name = name_tok.str,
+      nargs = int(nargs),
+      nreturns = int(nreturns),
+      body = body[:],
+      loc = loc_of(name_tok),
+    },
+  )
+}
+
+parse_macro :: proc(
+  l: ^lx.lexer,
+  fns: ^[dynamic]fn_def,
+  macros: ^[dynamic]macro_def,
+) {
+  name_tok := take_id(l, "a macro name")
+
+  if name_taken(fns, macros, name_tok.str) {
+    fail(loc_of(name_tok), "'%s' is already defined", name_tok.str)
+  }
+
+  body: [dynamic]instr
+  advance(l) // first token of the body
+  parse_block(l, &body, fns, macros, .macro)
+
+  append(macros, macro_def{name = name_tok.str, body = body[:], loc = loc_of(name_tok)})
+}
+
+parse_call :: proc(l: ^lx.lexer, code: ^[dynamic]instr, loc: src_loc, op: n_instr) {
+  name_tok := take_id(l, "a name after 'call'/'jmp'")
+  append(code, instr{op = op, name = name_tok.str, loc = loc})
+}
+
+parse_file :: proc(
+  file: string,
+  code: ^[dynamic]instr,
+  fns: ^[dynamic]fn_def,
+  macros: ^[dynamic]macro_def,
+) {
+  if !os.exists(file) {
+    fail({file = file, row = 1, col = 1}, "cannot open file '%s'", file)
+  }
+  l := lx.init_lexer(file)
+  advance(&l)
+  parse_block(&l, code, fns, macros, .top)
+}
+
+parse_program :: proc(file: string) -> program {
+  code: [dynamic]instr
+  fns: [dynamic]fn_def
+  macros: [dynamic]macro_def
+
+  parse_file(file, &code, &fns, &macros)
+
+  return program{code = code[:], fns = fns[:], macros = macros[:]}
 }
