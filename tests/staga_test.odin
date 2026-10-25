@@ -618,4 +618,29 @@ test_examples :: proc(t: ^testing.T) {
     strings.count(rule110.stdout, "\n"),
   )
   testing.expect(t, strings.contains(rule110.stdout, "*"))
+
+  rule110_fns_path, fns_err := filepath.join(
+    []string{root, "examples", "rule110_functions.stg"},
+  )
+  if fns_err != nil {
+    testing.expectf(t, false, "cannot build the rule110_functions path: %v", fns_err)
+    return
+  }
+  defer delete(rule110_fns_path)
+  rule110_fns := run_file(t, rule110_fns_path)
+  defer {
+    delete(rule110_fns.stdout)
+    delete(rule110_fns.stderr)
+  }
+  testing.expectf(
+    t,
+    rule110_fns.exit_code == 0,
+    "rule110_functions failed:\n%s",
+    rule110_fns.stderr,
+  )
+  testing.expectf(
+    t,
+    rule110_fns.stdout == rule110.stdout,
+    "rule110_functions should match the macro version",
+  )
 }

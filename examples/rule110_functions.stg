@@ -1,0 +1,95 @@
+// rule 110, but with real functions instead of the 8 macro cases.
+//
+// the definition, reading the neighbourhood as (left, centre, right):
+//
+//   111 -> 0    110 -> 1    101 -> 1    100 -> 0
+//   011 -> 1    010 -> 1    001 -> 1    000 -> 0
+//
+// so only 111, 100 and 000 produce a dead cell.
+
+macro BOARD_SIZE 100 fend
+macro ITERATIONS 96 fend
+
+// the rule itself. args: left centre right, returns the new centre.
+fn next_cell 3 1
+  // keep the args in scratch memory so they can be read more than once
+  402 mems // right
+  401 mems // centre
+  400 mems // left
+
+  // 000 and 100 are dead: centre = 0 and right = 0
+  401 meml 0 = 402 meml 0 = * if
+    0 ret
+  done
+
+  // 111 is dead
+  400 meml 1 = if
+    401 meml 1 = if
+      402 meml 1 = if
+        0 ret
+      done
+    done
+  done
+
+  1 ret
+fend
+
+// print BOARD_SIZE cells starting at the given memory slot
+fn print_row 1 0
+  500 mems // save the start slot
+  0 while dup jmp BOARD_SIZE < do
+    dup 500 meml + meml
+    1 = if "*" print else " " print done
+    1 +
+  end pop
+  ret
+fend
+
+// old row is mem[1..100]. copy it to the scratch row at mem[102..201].
+// mem[101] and mem[202] stay 0 and act as the outside neighbours.
+fn copy_row 0 0
+  0 while dup jmp BOARD_SIZE < do
+    dup 600 mems              // save the cell index
+    600 meml 1 + meml         // value = old[i]
+    600 meml 102 +            // destination = scratch[i]
+    mems
+    1 +
+  end pop
+  ret
+fend
+
+// next[p] = rule(old[p-1], old[p], old[p+1]), for every cell
+fn step 0 0
+  0 while dup jmp BOARD_SIZE < do
+    dup 600 mems              // save the cell index
+    600 meml 101 + meml       // left
+    600 meml 102 + meml       // centre
+    600 meml 103 + meml       // right
+    call next_cell            // result
+    600 meml 1 +              // old[p]
+    mems
+    1 +
+  end pop
+  ret
+fend
+
+// clear the old row and the scratch sentinels
+0 while dup 101 < do
+  dup 0 2 swap mems
+  1 +
+end pop
+0 101 mems
+0 202 mems
+
+// initial state: one live cell on the right edge
+1 100 mems
+
+0 while dup jmp ITERATIONS < do
+  1 call print_row
+  call copy_row
+  call step
+  "".
+  1 +
+end pop
+
+"".
