@@ -3,7 +3,7 @@ package staga
 import "core:fmt"
 import "core:os"
 import "core:strings"
-import fl "thirdparty/flag"
+import fl "../thirdparty/flag"
 
 main :: proc() {
 

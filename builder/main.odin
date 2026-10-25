@@ -11,7 +11,7 @@ RELEASE_OUT :: "build/staga" + EXE_SUFFIX
 make_builder :: proc(out: string, debug: bool) -> odin_builder.odin_cmd_builder {
   b: odin_builder.odin_cmd_builder
   b.main_cmd = .build
-  b.directory = "."
+  b.directory = "src"
   b.flags.out = out
   b.flags.thread_count = 4
   b.flags.debug = debug
