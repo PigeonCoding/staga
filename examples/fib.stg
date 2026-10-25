@@ -1,0 +1,13 @@
+// fibonacci, recursively
+fn fib 1 1
+  dup 2 < if
+    1 ret
+  done
+  dup 1 - call fib
+  2 swap 2 - call fib
+  +
+  ret
+fend
+
+"fib(10) = " print
+10 call fib .
